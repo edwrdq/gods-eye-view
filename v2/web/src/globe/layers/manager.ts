@@ -3,7 +3,7 @@ import type { ApiConfig, ApiFailure } from '../../api/index.ts';
 import { SnapshotHub } from '../../data/hub.ts';
 import type { FailedMessage, FromWorker, UpdateMessage } from '../../data/protocol.ts';
 import { bboxArea, bboxContains, bboxFromRectangle } from '../../lib/bbox.ts';
-import { cadenceMs, retryDelayMs } from '../../lib/cadence.ts';
+import { nextPollMs } from '../../lib/cadence.ts';
 import { debounce } from '../../lib/debounce.ts';
 import { CATEGORY_MAP_COLOR } from '../../lib/markerStyle.ts';
 import { thin } from '../../lib/trackStyle.ts';
@@ -14,7 +14,7 @@ import { TrackLine } from './track.ts';
 type Cesium = typeof import('cesium');
 
 /** Labels appear below this camera height. */
-export const LABEL_MAX_ALTITUDE_M = 1_200_000;
+export const LABEL_MAX_ALTITUDE_M = 800_000;
 const MOVE_DEBOUNCE_MS = 350;
 const MAX_TRACK_POINTS = 1500;
 
@@ -174,8 +174,7 @@ export function createDataLayers(
   function schedule(rt: Runtime): void {
     clearTimer(rt);
     if (timeAt !== null || document.hidden || destroyed) return; // history is fetched on demand, not polled
-    const base = cadenceMs(rt.state.feed?.freshnessMs);
-    rt.timer = setTimeout(() => request(rt), retryDelayMs(base, rt.failures));
+    rt.timer = setTimeout(() => request(rt), nextPollMs(rt.state.feed, rt.state.drawn, rt.failures));
   }
 
   function request(rt: Runtime): void {

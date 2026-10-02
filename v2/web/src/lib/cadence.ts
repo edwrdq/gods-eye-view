@@ -46,3 +46,13 @@ export function freshnessSummary(feeds: readonly FeedStatus[], now: number): Fre
   }
   return { fresh, total };
 }
+
+/**
+ * Delay until the next snapshot request. A feed that has nothing yet (the server
+ * starts polling an area only once it is asked for it) is retried quickly so the
+ * first data shows up in seconds rather than after a full cadence.
+ */
+export function nextPollMs(feed: FeedStatus | null, drawn: number, failures: number): number {
+  if (failures === 0 && feed && drawn === 0 && feed.lastSuccess === null && feed.state !== 'off' && feed.state !== 'needs-key') return MIN_POLL_MS;
+  return retryDelayMs(cadenceMs(feed?.freshnessMs), failures);
+}

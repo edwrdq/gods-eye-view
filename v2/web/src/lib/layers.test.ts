@@ -53,3 +53,9 @@ test('layerNoun reads naturally', () => {
   assert.equal(layerNoun('vessels', 5), 'ships');
   assert.equal(layerNoun('x', 5), 'objects');
 });
+
+test('disabled layers cannot be toggled and say so', () => {
+  const l = mk('x', 'air', 'disabled', 'Flights');
+  assert.equal(isToggleable(l), false);
+  assert.equal(switchLabel(l), 'Flights (disabled)');
+});

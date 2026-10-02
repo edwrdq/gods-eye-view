@@ -52,7 +52,7 @@ export class PointLayer {
     this.scene = scene;
     this.layer = opts.layer;
     this.category = opts.category;
-    this.labelCap = opts.labelCap ?? 150;
+    this.labelCap = opts.labelCap ?? 60;
     const shape = CATEGORY_SHAPE[opts.category];
     this.rotates = rotatesWithHeading(shape);
     const { key, canvas } = markerCanvas(shape, CATEGORY_MAP_COLOR[opts.category]);

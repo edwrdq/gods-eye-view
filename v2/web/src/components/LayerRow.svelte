@@ -12,10 +12,11 @@
   const on = $derived(layerStore.enabled[layer.id] === true && isToggleable(layer));
   const sourceOff = $derived(feedStore.byLayer[layer.id]?.state === 'off');
   const planned = $derived(layer.status === 'planned');
+  const inactive = $derived(layer.status === 'planned' || layer.status === 'disabled');
   const uid = $props.id();
 </script>
 
-<div class="layer" class:is-on={on} class:is-planned={planned}>
+<div class="layer" class:is-on={on} class:is-planned={inactive}>
   <div class="layer-name" id="{uid}-name">{layer.name}</div>
   <button
     class="switch"
@@ -30,6 +31,8 @@
   <div class="layer-desc" id="{uid}-desc">{layer.description}</div>
   {#if planned}
     <div class="layer-status"><StatusChip tone="planned">Planned</StatusChip></div>
+  {:else if layer.status === 'disabled'}
+    <div class="layer-status"><StatusChip tone="planned">Turned off</StatusChip><span>Enable <span class="mono">{layer.id}</span> in FEEDS</span></div>
   {:else if layer.status === 'needs-key'}
     <div class="layer-status">
       <StatusChip tone="key"><KeyRound size={12} strokeWidth={2} aria-hidden="true" />Needs API key</StatusChip>

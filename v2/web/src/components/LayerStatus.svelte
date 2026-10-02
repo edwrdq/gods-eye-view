@@ -51,7 +51,7 @@
     <div class="layer-status">
       {#if health === 'stale' || health === 'error'}
         <StatusChip tone={health}><Clock size={12} strokeWidth={2} aria-hidden="true" />{health === 'error' ? 'Error' : 'Stale'}</StatusChip>
-        <span class="num">{count} {noun} · updated {age}</span>
+        {#if age}<span class="num">{count} {noun} · updated {age}</span>{:else}<span class="msg">{feed.lastError ?? 'Waiting for the first data.'}</span>{/if}
       {:else}
         <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
         <span class="num">{count} {noun}{age ? ` · ${age}` : ''}</span>

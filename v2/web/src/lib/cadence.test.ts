@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { FeedStatus } from '@gev/shared';
-import { cadenceMs, effectiveState, freshnessSummary, retryDelayMs } from './cadence.ts';
+import { cadenceMs, nextPollMs, effectiveState, freshnessSummary, retryDelayMs } from './cadence.ts';
 
 const feed = (over: Partial<FeedStatus> = {}): FeedStatus => ({
   layer: 'flights',
@@ -45,4 +45,12 @@ test('a live feed turns stale once its data outlives the window', () => {
 test('freshness summary counts running feeds only', () => {
   const feeds = [feed(), feed({ layer: 'm', lastSuccess: 900_000 }), feed({ layer: 'v', state: 'needs-key' }), feed({ layer: 'x', state: 'off' })];
   assert.deepEqual(freshnessSummary(feeds, 1_010_000), { fresh: 1, total: 2 });
+});
+
+test('an empty feed with no data yet is retried at the minimum interval', () => {
+  const empty = feed({ lastSuccess: null, state: 'stale', count: 0, freshnessMs: 180_000 });
+  assert.equal(nextPollMs(empty, 0, 0), 5_000);
+  assert.equal(nextPollMs(feed({ freshnessMs: 180_000 }), 10, 0), 60_000);
+  assert.equal(nextPollMs(empty, 0, 2), 60_000); // failures back off normally
+  assert.equal(nextPollMs(null, 0, 0), 15_000);
 });

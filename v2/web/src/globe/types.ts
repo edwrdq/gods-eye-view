@@ -2,6 +2,7 @@ import type { BBox, LonLat } from '@gev/shared';
 import type { ApiConfig } from '../api/index.ts';
 import type { PlaceKind } from '../lib/bbox.ts';
 import type { DataHooks, DataLayers } from './layers/manager.ts';
+import type { BaseMapId } from '../lib/basemaps.ts';
 import type { BaseMapOutcome, BaseMapRequest } from './basemap.ts';
 
 export interface FlyTarget {
@@ -36,6 +37,8 @@ export interface Globe {
   onCursor(cb: (pos: LonLat | null) => void): () => void;
   /** Swap the base map in place (same viewer and camera). Resolves once the new source is installed. */
   setBaseMap(req: BaseMapRequest): Promise<BaseMapOutcome>;
+  /** The base map actually on screen (differs from the request after a startup fallback). */
+  getBaseMapShown(): BaseMapId | null;
   /** Change the day of a dated base map (NASA GIBS); other sources ignore it. */
   setBaseMapDate(date: string): Promise<BaseMapOutcome>;
   /** Load the data-layer renderer (its own chunk, fetched when the first layer is switched on). */

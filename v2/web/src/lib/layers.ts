@@ -62,7 +62,7 @@ export function countOn(layers: readonly LayerDescriptor[], enabled: Readonly<Re
 
 /** Label for a row whose switch is unavailable, for assistive tech. */
 export function switchLabel(layer: LayerDescriptor): string {
-  return layer.status === 'planned' ? `${layer.name} (planned)` : layer.status === 'needs-key' ? `${layer.name} (needs API key)` : layer.name;
+  return layer.status === 'planned' ? `${layer.name} (planned)` : layer.status === 'needs-key' ? `${layer.name} (needs API key)` : layer.status === 'disabled' ? `${layer.name} (disabled)` : layer.name;
 }
 
 /** Layers the data renderer can draw today (everything else shows a placeholder when switched on). */

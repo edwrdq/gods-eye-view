@@ -194,6 +194,7 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
     },
     // base map: delegated to the controller in basemap.ts
     setBaseMap: (req) => base.controller.apply(req),
+    getBaseMapShown: () => base.controller.shown,
     setBaseMapDate: (date) => base.controller.setDate(date),
     async loadData(hooks, api) {
       const { createDataLayers } = await import('./layers/manager.ts');

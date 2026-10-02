@@ -124,12 +124,12 @@ function observe(layer: string, i: number, t: number, full: boolean): Observatio
     lat: pos.lat,
     heading: Math.round(pos.heading * 10) / 10,
     speed: Math.round(p.speed * 10) / 10,
-    props: { label: labelOf(layer, i) },
+    props: layer === 'vessels' ? { name: labelOf(layer, i) } : { callsign: labelOf(layer, i), military: layer === 'military-flights', onGround: false },
   };
   if (p.alt !== null) obs.alt = Math.round(p.alt);
   if (full) {
-    if (layer === 'vessels') obs.props = { ...obs.props, shipType: pickOf(SHIP_TYPES, i, 40), mmsi: obs.objectId };
-    else obs.props = { ...obs.props, type: pickOf(layer === 'flights' ? AIRCRAFT : MIL_TYPES, i, 41)[0], squawk: String(1000 + Math.floor(rnd(i, 42) * 6000)) };
+    if (layer === 'vessels') obs.props = { ...obs.props, category: pickOf(SHIP_TYPES, i, 40), navStatus: 'Under way using engine', destination: 'ROTTERDAM' };
+    else obs.props = { ...obs.props, typeCode: pickOf(layer === 'flights' ? AIRCRAFT : MIL_TYPES, i, 41)[0], squawk: String(1000 + Math.floor(rnd(i, 42) * 6000)) };
   }
   return obs;
 }
@@ -167,7 +167,7 @@ export function fixtureConfig(): ClientConfig {
 
 function detailFor(layer: string, i: number, t: number): ObjectDetail {
   const obs = observe(layer, i, t, true);
-  const label = String(obs.props.label);
+  const label = String(obs.props.callsign ?? obs.props.name);
   const kind = KINDS[layer]!;
   const rows = (r: DetailRow[]) => r;
   const lat = obs.lat;
@@ -193,8 +193,8 @@ function detailFor(layer: string, i: number, t: number): ObjectDetail {
   let title = label;
   let subtitle: string | null;
   if (layer === 'vessels') {
-    subtitle = `${String(obs.props.shipType)} · MMSI ${obs.objectId}`;
-    sections.push({ title: 'Vessel', rows: rows([{ label: 'Name', value: label }, { label: 'MMSI', value: obs.objectId, mono: true }, { label: 'Type', value: String(obs.props.shipType) }]) });
+    subtitle = `${String(obs.props.category)} · MMSI ${obs.objectId}`;
+    sections.push({ title: 'Vessel', rows: rows([{ label: 'Name', value: label }, { label: 'MMSI', value: obs.objectId, mono: true }, { label: 'Type', value: String(obs.props.category) }]) });
   } else {
     const [code, name] = pickOf(layer === 'flights' ? AIRCRAFT : MIL_TYPES, i, 41);
     const reg = layer === 'flights' ? `N${10000 + Math.floor(rnd(i, 43) * 89999)}` : null;
@@ -217,7 +217,7 @@ function detailFor(layer: string, i: number, t: number): ObjectDetail {
       { label: 'Position', value: layer === 'vessels' ? 'Reported by vessel' : 'Reported by aircraft', hint: 'not estimated' },
     ]),
   });
-  return { layer, objectId: obs.objectId, observation: obs, title, subtitle, sections, sources: [kind.source] };
+  return { layer, objectId: obs.objectId, observation: obs, title, subtitle, sections, sources: [kind.source], live: true };
 }
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));

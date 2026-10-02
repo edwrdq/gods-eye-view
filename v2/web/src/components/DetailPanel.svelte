@@ -25,7 +25,9 @@
   const historical = $derived(timeState.at !== null);
   const seenAgo = $derived(detail ? Math.max(0, (historical ? timeState.at! : clock.now) - detail.observation.t) : 0);
   const freshness = $derived(feedStore.byLayer[selection.ref?.layer ?? '']?.freshnessMs ?? 60_000);
-  const stale = $derived(!historical && seenAgo > freshness);
+  // The server says whether the object is in the live picture; without that flag fall back to its age.
+  const notInFeed = $derived(selection.phase === 'gone' || (!historical && detail?.live === false));
+  const stale = $derived(!historical && detail?.live === undefined && seenAgo > freshness);
 
   const text = (v: PropValue): string => (v === null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? v.toLocaleString('en-US') : v);
 
@@ -95,12 +97,12 @@
       </button>
     </div>
     <div class="fresh">
-      {#if selection.phase === 'gone'}
-        <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />Not in feed</StatusChip>
+      {#if notInFeed}
+        <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />{historical ? 'Not recorded' : 'Not in feed'}</StatusChip>
         <span class="meta num">Last seen {formatAge(clock.now - detail.observation.t)}</span>
       {:else if historical}
         <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
-        <span class="meta num">Last seen {formatDuration(seenAgo)} before</span>
+        <span class="meta num">Last seen {formatDuration(seenAgo)} before this time</span>
       {:else if stale}
         <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />Stale</StatusChip>
         <span class="meta num">Last seen {formatAge(seenAgo)}</span>
@@ -109,8 +111,10 @@
         <span class="meta num">Last seen {formatAge(seenAgo)}</span>
       {/if}
     </div>
-    {#if selection.phase === 'gone'}
-      <p class="notice" role="status">This object is no longer in the feed. It may have landed, left coverage or stopped transmitting. The last known details are shown.</p>
+    {#if notInFeed}
+      <p class="notice" role="status">
+        {#if historical}This object wasn't recorded at the viewed time. The last details received are shown.{:else}This object is no longer in the feed. It may have landed, left coverage or stopped transmitting. The last known details are shown.{/if}
+      </p>
     {/if}
     {#if selection.track === 'empty'}<p class="notice" role="status">No recorded track for this object in the last 6 hours.</p>{/if}
     {#if selection.track === 'error'}<p class="notice err" role="alert">Couldn't load the track. Try again.</p>{/if}
