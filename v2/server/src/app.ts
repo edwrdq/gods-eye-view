@@ -232,7 +232,7 @@ export function createApp(deps: AppDeps): Hono {
 
   const maxFeatures = deps.maxFeatures ?? MAX_FEATURES;
 
-  app.get('/api/layers/:id/features', (c) => {
+  app.get('/api/layers/:id/features', async (c) => {
     const layerId = c.req.param('id');
     const g = gate(layerId, 'features');
     if (!g.ok) return c.json(fail(g.message), g.status);
@@ -250,7 +250,7 @@ export function createApp(deps: AppDeps): Hono {
     if (from !== undefined && to !== undefined && from > to) return c.json(fail('Query parameter from must not be after to'), 400);
     if (!isFeaturesFeed(g.feed)) return c.json(fail(`Layer ${layerId} has no features`), 404);
 
-    const { features, truncated } = g.feed.features(layerId, { bbox, from, to, limit: maxFeatures });
+    const { features, truncated } = await g.feed.features(layerId, { bbox, from, to, limit: maxFeatures });
     const body: FeaturesResponse = { layer: layerId, feed: g.feed.status(layerId), features, truncated };
     return c.json(body);
   });

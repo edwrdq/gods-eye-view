@@ -1,6 +1,7 @@
 import type { Feature, FeatureGeometry, PropValue } from '@gev/shared';
 import { lonLatAltToEcef } from './geo.ts';
 import { LAUNCH_ORDER, launchState } from './featureStyle.ts';
+import { bikeOrder } from './stationStyle.ts';
 
 /**
  * Packs a features response into typed arrays on the worker so the main thread
@@ -30,6 +31,10 @@ export const SCHEMAS: Record<string, PackSchema> = {
   // Large quakes first so small ones stay visible on top of them.
   earthquakes: { numKeys: ['mag', 'depthKm'], codeKeys: [null, null], order: (p) => -(typeof p.mag === 'number' ? p.mag : 0) },
   cyclones: { numKeys: ['intensityKt', 'tauHours'], codeKeys: ['part', 'category'] },
+  // Stations that need attention (empty, full) draw on top of healthy and offline ones.
+  bikeshare: { numKeys: ['fill', 'capacity'], codeKeys: ['state', null], order: (p) => bikeOrder(typeof p.state === 'string' ? p.state : '') },
+  // The server sends the most listened-to stations last, so they draw on top.
+  radio: { numKeys: ['clicks', 'bitrate'], codeKeys: ['play', null] },
   launches: { numKeys: ['net', null], codeKeys: ['status', null], order: (p) => LAUNCH_ORDER[launchState(typeof p.status === 'string' ? p.status : null)] },
 };
 

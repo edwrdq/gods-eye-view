@@ -1,0 +1,15 @@
+Country Code,Name,Location,System ID,URL,Auto-Discovery URL,Supported Versions,Authentication Info URL,Authentication Type,Authentication Parameter Name
+CA,Lime Mississauga,"Mississauga, ON",lime_mississauga,https://www.li.me,https://data.lime.bike/api/partners/v2/gbfs/mississauga/gbfs.json,2.2,,,
+CH,Lime Wetzikon,Wetzikon,lime_wetzikon,https://www.li.me/,https://gbfs.prod.sharedmobility.ch/v2/gbfs/lime_wetzikon/gbfs,2.3,https://github.com/SFOE/sharedmobility/blob/main/Access%20the%20data.md,2,Authorization
+CZ,nextbike Hodonín,"Hodonín, CZ",nextbike_nh,https://www.nextbikeczech.com/,https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_nh/gbfs.json,2.3,,,
+FR,Dott Paris,Paris,dott-paris,https://ridedott.com,https://gbfs.api.ridedott.com/public/v2/paris/gbfs.json,2.3,,,
+FR,Getaround Paris,Paris,getaround_paris,https://getaround.com/car-rental/paris,https://getaround.com/gbfs/v3/paris/gbfs,3.0,,,
+FR,Lime Paris,Paris,lime_paris,https://li.me/,https://data.lime.bike/api/partners/v2/gbfs/paris/gbfs.json,2.2,,,
+FR,Vélib' Metropole,Paris,Paris,https://www.velib-metropole.fr/,https://velib-metropole-opendata.smovengo.cloud/opendata/Velib_Metropole/gbfs.json,1.0,,,
+FR,Voi Paris,Paris,voi_Paris,https://www.voi.com/,https://api.voiapp.io/gbfs/fr/6bb6b5dc-1cda-4da7-9216-d3023a0bc54a/v2/352/gbfs.json,2.3,,,
+FR,YEGO Paris,Paris,yego paris,https://www.rideyego.com/,https://services.rideyego.com/gbfs/2-3/paris/fr/gbfs,1.1 ; 2.0 ; 2.1 ; 2.2 ; 2.3,,,
+US,Bird New York,"New York, NY",bird-new-york,https://bird.co,https://mds.bird.co/gbfs/v2/public/new-york/gbfs.json,1.1 ; 2.3,,,
+US,Blue Bikes,"Boston, MA",bluebikes,https://www.bluebikes.com/,https://gbfs.bluebikes.com/gbfs/gbfs.json,1.1,,,
+US,Citi Bike,"New York, NY",lyft_nyc,https://www.citibikenyc.com,https://gbfs.citibikenyc.com/gbfs/2.3/gbfs.json,2.3,,,
+
+XX,Broken,Nowhere,http_only,https://example.org,http://example.org/gbfs.json,2.3,,,

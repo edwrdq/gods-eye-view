@@ -1,0 +1,21 @@
+{
+ "last_updated": "2026-09-29T10:47:19.000+00:00",
+ "ttl": 60,
+ "version": "3.0",
+ "data": {
+  "feeds": [
+   {
+    "name": "station_information",
+    "url": "https://api.mobidata-bw.de/sharing/gbfs/v3/lara_to_go/station_information"
+   },
+   {
+    "name": "station_status",
+    "url": "https://api.mobidata-bw.de/sharing/gbfs/v3/lara_to_go/station_status"
+   },
+   {
+    "name": "vehicle_types",
+    "url": "https://api.mobidata-bw.de/sharing/gbfs/v3/lara_to_go/vehicle_types"
+   }
+  ]
+ }
+}

@@ -1,0 +1,71 @@
+{
+ "last_updated": "2026-10-02T16:28:59.000+00:00",
+ "ttl": 60,
+ "version": "3.0",
+ "data": {
+  "vehicle_types": [
+   {
+    "vehicle_type_id": "LTG:VehicleType:urban_arrow_cargo",
+    "form_factor": "cargo_bicycle",
+    "cargo_load_capacity": 125,
+    "propulsion_type": "electric",
+    "max_range_meters": 50000.0,
+    "name": [
+     {
+      "text": "Urban Arrow Cargo",
+      "language": "de"
+     }
+    ],
+    "make": [
+     {
+      "text": "Urban Arrow",
+      "language": "de"
+     }
+    ],
+    "model": [
+     {
+      "text": "Cargo",
+      "language": "de"
+     }
+    ],
+    "return_constraint": "roundtrip_station",
+    "default_pricing_plan_id": "LTG:PricingPlan:bike_hour_daytime",
+    "pricing_plan_ids": [
+     "LTG:PricingPlan:bike_hour_daytime",
+     "LTG:PricingPlan:bike_day"
+    ]
+   },
+   {
+    "vehicle_type_id": "LTG:VehicleType:urban_arrow_family",
+    "form_factor": "cargo_bicycle",
+    "cargo_load_capacity": 125,
+    "propulsion_type": "electric",
+    "max_range_meters": 50000.0,
+    "name": [
+     {
+      "text": "Urban Arrow Family",
+      "language": "de"
+     }
+    ],
+    "make": [
+     {
+      "text": "Urban Arrow",
+      "language": "de"
+     }
+    ],
+    "model": [
+     {
+      "text": "Cargo",
+      "language": "de"
+     }
+    ],
+    "return_constraint": "roundtrip_station",
+    "default_pricing_plan_id": "LTG:PricingPlan:bike_hour_daytime",
+    "pricing_plan_ids": [
+     "LTG:PricingPlan:bike_hour_daytime",
+     "LTG:PricingPlan:bike_day"
+    ]
+   }
+  ]
+ }
+}

@@ -3,7 +3,8 @@ import { cycloneLabel, cycloneSize, FORECAST_POINT_PX, LAUNCH_PX, launchEta, lau
 import { NO_CODE, splitIds, type FeaturePack } from '../../lib/geometryPack.ts';
 import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, markerVariantFor } from '../../lib/markerStyle.ts';
 import { quakeStyle } from '../../lib/quakeStyle.ts';
-import { launchCanvas, markerCanvas, quakeCanvas, stormCanvas } from './markers.ts';
+import { bikeCanvas, launchCanvas, markerCanvas, quakeCanvas, radioCanvas, stormCanvas } from './markers.ts';
+import { bikeForm, bikeKey, bikePx, radioKey, radioPx, stationLabel } from '../../lib/stationStyle.ts';
 import { LabelPool } from './labelPool.ts';
 import { PICK_SEP } from './pointLayer.ts';
 import { labelRect, selectLabels, type LabelCandidate, type Rect } from '../../lib/declutter.ts';
@@ -124,6 +125,19 @@ export class FeatureLayer {
           label: eta ? `${truncate(label, 30)} · ${eta}` : truncate(label, 36),
           alwaysLabel: false,
         };
+      }
+      case 'bikeshare': {
+        // fill, capacity numeric; state coded. A station with no reading has NaN fill and the 'unknown' state.
+        const f = bikeForm(code0, num0);
+        const px = bikePx(num1);
+        const key = bikeKey(f, px, color);
+        return { key, canvas: () => bikeCanvas(key, f, px, color), px, label: stationLabel(label), alwaysLabel: false };
+      }
+      case 'radio': {
+        const px = radioPx(num0);
+        const audio = code0 === 'audio';
+        const key = radioKey(px, audio, color);
+        return { key, canvas: () => radioCanvas(key, px, audio, color), px, label: stationLabel(label), alwaysLabel: false };
       }
       default: {
         const shape = CATEGORY_SHAPE[this.category];

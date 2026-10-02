@@ -47,6 +47,10 @@ export function featureTimeNote(layer: string, t: number, now: number, historica
       const eta = launchEta(t, now);
       return eta.startsWith('T-') ? `Launch ${eta}` : `Launched ${eta}`;
     }
+    case 'bikeshare':
+      return `Station reported ${formatAge(now - t)}`;
+    case 'radio':
+      return 'From the Radio Browser directory';
     case 'submarine-cables':
     case 'datacenters':
     case 'installations':

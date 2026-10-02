@@ -169,6 +169,8 @@ const implemented: ReadonlySet<string> = new Set([
   'launches',
   'earthquakes',
   'cyclones',
+  'bikeshare',
+  'radio',
 ]);
 
 /** How each catalog layer is served (see LayerKind). */

@@ -6,7 +6,7 @@ import { bboxArea, bboxContains } from '../../lib/bbox.ts';
 import { nextPollMs } from '../../lib/cadence.ts';
 import type { Rect } from '../../lib/declutter.ts';
 import { splitIds } from '../../lib/geometryPack.ts';
-import { featureWindow, ignoresTime, isStatic, referenceTime } from '../../lib/featureWindow.ts';
+import { featureWindow, ignoresTime, isStatic, isViewport, pollIntervalMs, referenceTime } from '../../lib/featureWindow.ts';
 import { FeatureLayer } from './featureLayer.ts';
 import type { ControllerHost, LayerController } from './host.ts';
 import type { LayerRunState, LayerSpec } from './types.ts';
@@ -22,6 +22,21 @@ interface Runtime {
   ref: number;
   /** Area the last request asked for (static layers: null means the whole world). */
   asked: BBox | null;
+  /** Bikeshare: most stations came without a reading (an operator was still loading), so ask again soon. */
+  catchUp: boolean;
+}
+
+/** How soon a bikeshare view that came back without readings asks again. */
+const CATCH_UP_MS = 8_000;
+
+/** True when most points of a bikeshare pack have no status yet (the server answered before the operator's status feed did). */
+function mostlyUnread(pack: import('../../lib/geometryPack.ts').FeaturePack): boolean {
+  const n = pack.points.count;
+  const code = pack.dict.indexOf('unknown');
+  if (n === 0 || code < 0) return false;
+  let unread = 0;
+  for (let i = 0; i < n; i++) if (pack.points.code[2 * i] === code) unread++;
+  return unread * 2 > n;
 }
 
 /** Polls and draws every `kind: 'features'` layer (earthquakes, cyclones, launches, ...). */
@@ -60,6 +75,7 @@ export class FeatureController implements LayerController {
       failures: 0,
       ref: Date.now(),
       asked: null,
+      catchUp: false,
     };
     this.layers.set(spec.id, rt);
     this.emit(rt);
@@ -92,7 +108,7 @@ export class FeatureController implements LayerController {
   /** Bundled datasets are asked for the viewed area: refetch when the view leaves it, or when a capped answer can now be fuller. */
   cameraSettled(): void {
     for (const rt of this.layers.values()) {
-      if (!isStatic(rt.spec.id) || rt.state.phase === 'loading' && !rt.state.hasData) continue;
+      if (!isViewport(rt.spec.id) || rt.state.phase === 'loading' && !rt.state.hasData) continue;
       const next = this.host.viewBBox();
       const covered = rt.asked === null || bboxContains(rt.asked, next);
       const zoomedIn = rt.state.truncated && bboxArea(next) < bboxArea(rt.asked) * 0.6;
@@ -159,14 +175,16 @@ export class FeatureController implements LayerController {
     if (isStatic(rt.spec.id)) return;
     // A time-windowed layer in history mode is fetched on demand; current-only layers keep polling.
     if (this.host.timeAt() !== null && !ignoresTime(rt.spec.id)) return;
-    rt.timer = setTimeout(() => this.request(rt), nextPollMs(rt.state.feed, rt.state.drawn, rt.failures));
+    const fixed = rt.catchUp ? CATCH_UP_MS : pollIntervalMs(rt.spec.id);
+    const delay = fixed === null ? nextPollMs(rt.state.feed, rt.state.drawn, rt.failures) : Math.max(fixed, rt.failures > 0 ? fixed * 2 ** Math.min(rt.failures, 3) : 0);
+    rt.timer = setTimeout(() => this.request(rt), delay);
   }
 
   private request(rt: Runtime): void {
     this.clearTimer(rt);
     if (this.destroyed) return;
     const at = ignoresTime(rt.spec.id) ? null : this.host.timeAt();
-    rt.asked = isStatic(rt.spec.id) ? this.host.viewBBox() : null;
+    rt.asked = isViewport(rt.spec.id) ? this.host.viewBBox() : null;
     rt.inflight = this.hub.fetch(rt.spec.id, featureWindow(rt.spec.id, at), rt.asked ?? undefined);
     if (!rt.state.hasData && rt.state.phase !== 'loading') {
       rt.state = { ...rt.state, phase: 'loading', error: null };
@@ -187,6 +205,7 @@ export class FeatureController implements LayerController {
     // Cables are drawn as several parts each; count the cables, not the parts.
     const lines = m.layer === 'submarine-cables' ? new Set(splitIds(m.pack.lines.ids)).size : m.pack.lines.count;
     const drawn = m.pack.points.count + lines + m.pack.polys.count;
+    rt.catchUp = m.layer === 'bikeshare' && mostlyUnread(m.pack);
     rt.state = {
       phase: 'ready',
       hasData: true,

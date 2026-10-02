@@ -95,6 +95,10 @@ export function layerNoun(layerId: string, count: number): string {
       return count === 1 ? 'data center' : 'data centers';
     case 'installations':
       return count === 1 ? 'mapped site' : 'mapped sites';
+    case 'bikeshare':
+      return count === 1 ? 'bike station' : 'bike stations';
+    case 'radio':
+      return count === 1 ? 'radio station' : 'radio stations';
     default:
       return count === 1 ? 'object' : 'objects';
   }

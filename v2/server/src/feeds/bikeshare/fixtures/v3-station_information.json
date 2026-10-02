@@ -1,0 +1,76 @@
+{
+ "last_updated": "2026-10-02T16:28:59.000+00:00",
+ "ttl": 60,
+ "version": "3.0",
+ "data": {
+  "stations": [
+   {
+    "station_id": "LTG:Station:1173089833",
+    "name": [
+     {
+      "text": "WN-Hohenacker - Rathaus",
+      "language": "de"
+     }
+    ],
+    "lat": 48.866266,
+    "lon": 9.316202,
+    "address": "Waiblingen, Karl-Ziegler-Straße 17",
+    "post_code": "71336",
+    "rental_methods": [
+     "key"
+    ]
+   },
+   {
+    "station_id": "LTG:Station:640294288",
+    "name": [
+     {
+      "text": "WN-Marktgarage",
+      "language": "de"
+     }
+    ],
+    "lat": 48.833185,
+    "lon": 9.315731,
+    "address": "Waiblingen, Marktgasse 1",
+    "post_code": "71332",
+    "rental_methods": [
+     "key"
+    ],
+    "capacity": 1
+   },
+   {
+    "station_id": "LTG:Station:2022742213",
+    "name": [
+     {
+      "text": "WN-Beinstein - Jugendzentrum",
+      "language": "de"
+     }
+    ],
+    "lat": 48.822357,
+    "lon": 9.347911,
+    "address": "Waiblingen, Rathausstraße 13",
+    "post_code": "71334",
+    "rental_methods": [
+     "key"
+    ],
+    "capacity": 1
+   },
+   {
+    "station_id": "LTG:Station:1367991395",
+    "name": [
+     {
+      "text": "Murrhardt - Hörschbachschule",
+      "language": "de"
+     }
+    ],
+    "lat": 48.981682,
+    "lon": 9.563109,
+    "address": "Murrhardt, Berliner Straße 3",
+    "post_code": "71540",
+    "rental_methods": [
+     "key"
+    ],
+    "capacity": 1
+   }
+  ]
+ }
+}

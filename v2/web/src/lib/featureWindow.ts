@@ -3,21 +3,35 @@
 const DAY = 86_400_000;
 
 /** Layers that only know the present: cyclones and launches show current data in history mode. */
-const LIVE_ONLY: ReadonlySet<string> = new Set(['cyclones', 'launches']);
+const LIVE_ONLY: ReadonlySet<string> = new Set(['cyclones', 'launches', 'bikeshare']);
 
 export function isLiveOnly(layerId: string): boolean {
   return LIVE_ONLY.has(layerId);
 }
 
 /**
- * Bundled datasets (submarine cables, data centers, mapped military areas). They
- * are snapshots, not feeds: nothing is recorded, time does not apply, and they
- * are fetched for the viewed area instead of polled.
+ * Bundled datasets (submarine cables, data centers, mapped military areas) and
+ * the radio directory (a listing the server refreshes every few hours). They are
+ * snapshots, not feeds: nothing is recorded, time does not apply, and they are
+ * fetched for the viewed area instead of polled.
  */
-const STATIC: ReadonlySet<string> = new Set(['submarine-cables', 'datacenters', 'installations']);
+const STATIC: ReadonlySet<string> = new Set(['submarine-cables', 'datacenters', 'installations', 'radio']);
 
 export function isStatic(layerId: string): boolean {
   return STATIC.has(layerId);
+}
+
+/** Live layers the server loads per viewed area (the operators are asked only about what is on screen). */
+const VIEWPORT_LIVE: ReadonlySet<string> = new Set(['bikeshare']);
+
+/** Layers fetched for the viewed area and refetched when the view leaves it. */
+export function isViewport(layerId: string): boolean {
+  return STATIC.has(layerId) || VIEWPORT_LIVE.has(layerId);
+}
+
+/** A fixed refresh interval for layers whose cadence is not derived from the feed's freshness window. */
+export function pollIntervalMs(layerId: string): number | null {
+  return layerId === 'bikeshare' ? 60_000 : null;
 }
 
 /** Layers that keep their data when a past time is viewed (current-only feeds and snapshots). */

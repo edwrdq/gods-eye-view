@@ -1,0 +1,69 @@
+{
+ "last_updated": "2026-10-02T16:28:59.000+00:00",
+ "ttl": 60,
+ "version": "3.0",
+ "data": {
+  "stations": [
+   {
+    "station_id": "LTG:Station:1173089833",
+    "num_vehicles_available": 0,
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "LTG:VehicleType:urban_arrow_cargo",
+      "count": 0
+     }
+    ],
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "last_reported": "2026-10-02T16:28:59.000+00:00"
+   },
+   {
+    "station_id": "LTG:Station:640294288",
+    "num_vehicles_available": 1,
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "LTG:VehicleType:urban_arrow_cargo",
+      "count": 1
+     },
+     {
+      "vehicle_type_id": "LTG:VehicleType:urban_arrow_family",
+      "count": 0
+     }
+    ],
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "last_reported": "2026-10-02T16:28:59.000+00:00"
+   },
+   {
+    "station_id": "LTG:Station:2022742213",
+    "num_vehicles_available": 1,
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "LTG:VehicleType:urban_arrow_cargo",
+      "count": 1
+     }
+    ],
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "last_reported": "2026-10-02T16:28:59.000+00:00"
+   },
+   {
+    "station_id": "LTG:Station:1367991395",
+    "num_vehicles_available": 1,
+    "vehicle_types_available": [
+     {
+      "vehicle_type_id": "LTG:VehicleType:urban_arrow_cargo",
+      "count": 1
+     }
+    ],
+    "is_installed": true,
+    "is_renting": true,
+    "is_returning": true,
+    "last_reported": "2026-10-02T16:28:59.000+00:00"
+   }
+  ]
+ }
+}

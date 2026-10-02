@@ -6,7 +6,7 @@
   import StatusChip from './StatusChip.svelte';
   import { effectiveState } from '../lib/cadence.ts';
   import { HISTORY_NOTE_LIVE_ONLY, HISTORY_NOTE_STATIC, isStatic } from '../lib/featureWindow.ts';
-  import { capNote, layerSummary } from '../lib/layerSummary.ts';
+  import { capNote, layerSummary, viewNote } from '../lib/layerSummary.ts';
   import { layerChip } from '../lib/viewState.ts';
   import { isRendered, layerNoun } from '../lib/layers.ts';
   import { formatAge, formatClockUtc } from '../lib/time.ts';
@@ -35,6 +35,7 @@
       lines: run?.lines,
       shown: run?.orbits?.shown,
       at: layer.kind === 'features' && run?.historical ? run.at : null,
+      truncated: run?.truncated === true,
     }),
   );
   const elementsAge = $derived(age);
@@ -78,7 +79,7 @@
       {#if run.currentOnly}<span class="note">{isStatic(layer.id) ? HISTORY_NOTE_STATIC : HISTORY_NOTE_LIVE_ONLY}</span>{/if}
       {#if !run.currentOnly && isStatic(layer.id) && age}<span class="note">Data from {age}</span>{/if}
       {#if layer.kind === 'orbits' && viewing && timeState.at !== null}<span class="note">Positions predicted for <span class="mono">{formatClockUtc(timeState.at)}</span></span>{/if}
-      {#if run.truncated}<span class="note">{capNote(run.drawn, run.total)}</span>{/if}
+      {#if run.truncated}<span class="note">{viewNote(layer.id, run.drawn, true) ?? capNote(run.drawn, run.total)}</span>{/if}
     </div>
   {:else if on && (run?.historical || viewing)}
     <div class="layer-status">

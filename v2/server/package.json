@@ -6,6 +6,7 @@
     "dev": "node --watch --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts",
     "start": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/main.ts",
     "check": "tsc -p .",
+    "bikeshare:index": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/feeds/bikeshare/build-index.ts",
     "test": "node --test --experimental-strip-types --disable-warning=ExperimentalWarning 'src/**/*.test.ts'"
   },
   "dependencies": {

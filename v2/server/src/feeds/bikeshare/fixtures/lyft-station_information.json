@@ -1,0 +1,79 @@
+{
+ "data": {
+  "stations": [
+   {
+    "station_id": "66db2a71-0aca-11e7-82f6-3863bb44ef7c",
+    "name": "Barrow St & Hudson St",
+    "short_name": "5805.05",
+    "lon": -74.00674436,
+    "lat": 40.73172428,
+    "region_id": "71",
+    "capacity": 0,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "2250953816197165238",
+    "name": "New Lots Ave & Van Sinderen Ave",
+    "short_name": "3565.07",
+    "lon": -73.89915,
+    "lat": 40.65923,
+    "region_id": "71",
+    "capacity": 15,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "ad57266c-34da-43da-8b48-2ba856002fbf",
+    "name": "Grove St & Broadway",
+    "short_name": "4526.01",
+    "lon": -73.923511,
+    "lat": 40.69047,
+    "region_id": "71",
+    "capacity": 31,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "42c3bb6e-0478-4e4a-af10-151f5f4dffb9",
+    "name": "55 Dr & Maurice Ave",
+    "short_name": "5579.04",
+    "lon": -73.90917,
+    "lat": 40.7261,
+    "region_id": "71",
+    "capacity": 19,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   },
+   {
+    "station_id": "ca843847-923a-40b7-80ca-c1c3fff6e818",
+    "name": "Macombs Rd & W 175 St",
+    "short_name": "8344.04",
+    "lon": -73.916082,
+    "lat": 40.848177,
+    "region_id": "71",
+    "capacity": 20,
+    "rental_uris": {
+     "android": "https://bkn.lft.to/lastmile_qr_scan",
+     "ios": "https://bkn.lft.to/lastmile_qr_scan"
+    },
+    "is_charging": false
+   }
+  ]
+ },
+ "last_updated": 1790958309,
+ "ttl": 60,
+ "version": "2.3"
+}

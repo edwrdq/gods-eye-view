@@ -13,6 +13,8 @@ export interface SummaryInput {
   shown?: number;
   /** Viewed instant when not live. */
   at: number | null;
+  /** The server held stations back (a view too wide, or more than fit). */
+  truncated?: boolean;
 }
 
 const n = (v: number) => v.toLocaleString('en-US');
@@ -46,6 +48,11 @@ export function layerSummary(i: SummaryInput): string {
       const shown = i.shown ?? i.drawn;
       return shown === i.drawn ? `${n(i.drawn)} ${layerNoun('satellites', i.drawn)}` : `${n(shown)} of ${n(i.drawn)} satellites`;
     }
+    case 'bikeshare':
+      if (i.drawn > 0) return `${n(i.drawn)} ${layerNoun('bikeshare', i.drawn)}`;
+      return i.truncated ? 'Zoom in to a city' : 'No bike stations in view';
+    case 'radio':
+      return i.drawn === 0 ? 'No radio stations in view' : `${n(i.drawn)} ${layerNoun('radio', i.drawn)}`;
     default: {
       const noun = layerNoun(i.layerId, i.drawn);
       const win = windowLabel(i.layerId);
@@ -54,4 +61,15 @@ export function layerSummary(i: SummaryInput): string {
       return i.at !== null && win ? `${base}${tail} to ${hhmm(i.at)}` : `${base}${tail}`;
     }
   }
+}
+
+/**
+ * The note beside a layer that shows part of what it has because of the view, or null
+ * when the generic cap note fits.
+ */
+export function viewNote(layerId: string, drawn: number, truncated: boolean): string | null {
+  if (!truncated) return null;
+  if (layerId === 'bikeshare') return drawn === 0 ? 'Stations load for one city at a time.' : `Showing ${n(drawn)} stations. Zoom in for all.`;
+  if (layerId === 'radio') return `Showing the ${n(drawn)} best known. Zoom in for more.`;
+  return null;
 }

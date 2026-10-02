@@ -89,7 +89,8 @@ export interface FeatureResult {
 
 /** Events and shapes served through /features (earthquakes, cyclones, launches). */
 export interface FeaturesFeed extends Feed {
-  features(layer: string, query: FeatureQuery): FeatureResult;
+  /** May be asynchronous: layers served from the operators' own feeds (bikeshare) load what the view needs first. */
+  features(layer: string, query: FeatureQuery): FeatureResult | Promise<FeatureResult>;
   /** Null when the feature is unknown. Must resolve without network access. */
   featureDetail(layer: string, featureId: string): Promise<FeatureDetail | null>;
 }

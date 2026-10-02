@@ -14,6 +14,7 @@
   import X from '@lucide/svelte/icons/x';
   import CategoryIcon from './CategoryIcon.svelte';
   import IconButton from './IconButton.svelte';
+  import RadioPlayer from './RadioPlayer.svelte';
   import StatusChip from './StatusChip.svelte';
   import { primaryAction, titleIsIdentifier } from '../lib/detailActions.ts';
   import { featureTimeNote } from '../lib/featureDetail.ts';
@@ -51,6 +52,9 @@
 
   const text = (v: PropValue): string => (v === null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? v.toLocaleString('en-US') : v);
 
+  const isRadio = $derived(selection.ref?.layer === 'radio');
+  const urlLabel = $derived(isRadio ? 'Open homepage' : selection.ref?.layer === 'bikeshare' ? 'Operator site' : 'Open source page');
+
   // Military aircraft are a separate layer; the flag on the observation covers a civil layer that carries one.
   const military = $derived(selection.ref?.layer === 'military-flights' || detail?.observation.props.military === true);
 
@@ -82,7 +86,7 @@
     <div class="state">
       <MousePointer2 size={28} strokeWidth={1.5} class="state-icon" aria-hidden="true" />
       <h2>Nothing selected</h2>
-      <p>Click an aircraft, ship, earthquake, storm, launch or satellite on the globe to see its details here.</p>
+      <p>Click an aircraft, ship, earthquake, storm, launch, satellite, bike station or radio station on the globe to see its details here.</p>
     </div>
   {:else if selection.phase === 'loading' && !detail}
     <div class="head">
@@ -120,7 +124,7 @@
           <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />{selection.following ? 'Following' : 'Follow'}
         </button>
       {:else}
-        <button class="btn primary" type="button" onclick={flyToSelection}>
+        <button class="btn" class:primary={!isRadio} type="button" onclick={flyToSelection}>
           <LocateFixed size={14} strokeWidth={1.75} aria-hidden="true" />Fly to
         </button>
       {/if}
@@ -130,13 +134,14 @@
         </button>
       {:else if selection.url}
         <a class="btn" href={selection.url} target="_blank" rel="noopener noreferrer">
-          <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />Open source page<span class="visually-hidden"> (opens in a new tab)</span>
+          <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />{urlLabel}<span class="visually-hidden"> (opens in a new tab)</span>
         </a>
       {/if}
       <button class="icon-outline" type="button" aria-label={selection.copied ? 'Copied' : 'Copy id and coordinates'} title="Copy id and coordinates" onclick={copySelection}>
         {#if selection.copied}<Check size={14} strokeWidth={2} aria-hidden="true" />{:else}<Copy size={14} strokeWidth={1.75} aria-hidden="true" />{/if}
       </button>
     </div>
+    {#if isRadio}<RadioPlayer id={detail.objectId} props={detail.observation.props} />{/if}
     <div class="fresh">
       {#if military}<StatusChip tone="neutral"><Triangle size={12} strokeWidth={2} aria-hidden="true" />Military</StatusChip>{/if}
       {#if kind !== 'tracked' && !notInFeed}

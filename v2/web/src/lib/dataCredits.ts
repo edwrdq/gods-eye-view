@@ -31,6 +31,20 @@ export const DATA_CREDITS: readonly DataCredit[] = [
     link: { href: 'https://www.openstreetmap.org/copyright', label: 'ODbL 1.0' },
     licence: 'share-alike',
   },
+  {
+    layer: 'bikeshare',
+    lead: 'Bikeshare',
+    text: 'Station data published by each operator over GBFS; systems listed by the',
+    link: { href: 'https://github.com/MobilityData/gbfs/blob/master/systems.csv', label: 'MobilityData GBFS catalogue' },
+    licence: 'CC BY 3.0; operator terms vary',
+  },
+  {
+    layer: 'radio',
+    lead: 'Radio stations',
+    text: 'Directory from',
+    link: { href: 'https://www.radio-browser.info', label: 'Radio Browser' },
+    licence: 'community-maintained; streams belong to their stations',
+  },
 ];
 
 /** The credits for the layers that are switched on. */

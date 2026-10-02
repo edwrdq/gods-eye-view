@@ -1,5 +1,6 @@
 import { AGE_ALPHA, type AgeBucket } from '../../lib/quakeStyle.ts';
 import type { LaunchState } from '../../lib/featureStyle.ts';
+import { BIKE_LEVEL_FILL, type BikeForm } from '../../lib/stationStyle.ts';
 import { MAP_HALO, MAP_SELECTION, markerKey, shapePoints, type MarkerShape, type MarkerVariant } from '../../lib/markerStyle.ts';
 
 /** Marker images are drawn once per (shape, colour) and shared by every billboard through the texture atlas. */
@@ -195,6 +196,100 @@ export function launchCanvas(key: string, state: LaunchState, sizePx: number, co
         ctx.lineWidth = 3.2;
         ctx.stroke();
       }
+    }
+  });
+}
+
+/**
+ * Bikeshare station: a hexagon used as a gauge. The dark body fills from the bottom with the
+ * category hue in proportion to the bikes at the station; the rim is always the hue. Out of
+ * service is a dashed dim rim with a cross, no reading a dashed rim, and bikes without a dock
+ * count a centred dot.
+ */
+export function bikeCanvas(key: string, f: BikeForm, sizePx: number, color: string): HTMLCanvasElement {
+  const size = Math.ceil(sizePx * 2 + 12);
+  return canvasFor(key, size, size, (ctx) => {
+    const c = size / 2;
+    const r = sizePx; // 2x canvas: the CSS diameter is sizePx, so the radius in canvas px is sizePx
+    const hex = () => {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i - Math.PI / 2;
+        const x = c + r * Math.cos(a);
+        const y = c + r * Math.sin(a);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    };
+    // dark halo, then the dark body the gauge fills
+    hex();
+    ctx.strokeStyle = MAP_HALO;
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    ctx.globalAlpha = f.form === 'offline' ? 0.55 : f.form === 'nodata' ? 0.35 : 1;
+    ctx.fillStyle = MAP_HALO;
+    hex();
+    ctx.fill();
+    if (f.form === 'level' && f.level > 0) {
+      ctx.save();
+      hex();
+      ctx.clip();
+      const h = 2 * r * BIKE_LEVEL_FILL[f.level];
+      ctx.fillStyle = color;
+      ctx.fillRect(c - r, c + r - h, 2 * r, h);
+      ctx.restore();
+    }
+    ctx.globalAlpha = f.form === 'offline' ? 0.6 : 1;
+    hex();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.2;
+    if (f.form === 'offline' || f.form === 'nodata') ctx.setLineDash([7, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (f.form === 'dot') {
+      ctx.beginPath();
+      ctx.arc(c, c, r * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else if (f.form === 'offline') {
+      const d = r * 0.34;
+      ctx.beginPath();
+      ctx.moveTo(c - d, c - d);
+      ctx.lineTo(c + d, c + d);
+      ctx.moveTo(c + d, c - d);
+      ctx.lineTo(c - d, c + d);
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  });
+}
+
+/** Radio station: a ring (the signals shape); a centred dot says it plays in the browser, a bare ring says it opens as a link. */
+export function radioCanvas(key: string, sizePx: number, audio: boolean, color: string): HTMLCanvasElement {
+  const size = Math.ceil(sizePx * 2 + 12);
+  return canvasFor(key, size, size, (ctx) => {
+    const c = size / 2;
+    const r = sizePx - 2;
+    ctx.beginPath();
+    ctx.arc(c, c, r, 0, Math.PI * 2);
+    ctx.strokeStyle = MAP_HALO;
+    ctx.lineWidth = 8;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3.4;
+    ctx.stroke();
+    if (audio) {
+      ctx.beginPath();
+      ctx.arc(c, c, r * 0.36, 0, Math.PI * 2);
+      ctx.fillStyle = MAP_HALO;
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(c, c, r * 0.3, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
     }
   });
 }

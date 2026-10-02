@@ -4,6 +4,8 @@
   import { FORECAST_POINT_PX, LAUNCH_PX, cycloneSize } from '../lib/featureStyle.ts';
   import { readStored, writeStored } from '../lib/storage.ts';
   import { AGE_ALPHA, AGE_LABELS, magnitudeSize } from '../lib/quakeStyle.ts';
+  import { BIKE_LEVEL_FILL } from '../lib/stationStyle.ts';
+  import { shapePoints } from '../lib/markerStyle.ts';
 
   let { layer }: { layer: LayerDescriptor } = $props();
   const KEY = $derived(`gev.v2.legend.${layer.id}`);
@@ -26,7 +28,16 @@
   ];
   // Star outline on a 40 grid (same points the map marker uses).
   const STAR = '20,4 24.5,15.5 36,20 24.5,24.5 20,36 15.5,24.5 4,20 15.5,15.5';
-  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites', 'submarine-cables', 'datacenters', 'installations'].includes(layer.id));
+  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites', 'submarine-cables', 'datacenters', 'installations', 'bikeshare', 'radio'].includes(layer.id));
+  // Hexagon outline on the 40 grid, the same points the map marker uses; the gauge fills from y = 31 upwards over 22 units.
+  const HEX = shapePoints('hexagon')!.join(' ');
+  const levels = [
+    { level: 0 as const, label: 'No bike' },
+    { level: 1 as const, label: 'Few' },
+    { level: 2 as const, label: 'Half' },
+    { level: 3 as const, label: 'Most' },
+    { level: 4 as const, label: 'No free dock' },
+  ];
 </script>
 
 {#if has}
@@ -81,6 +92,35 @@
             <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="8" width="24" height="24" rx="3" class="sq hollow" /></svg>Mapped military area</span>
           </div>
           <p class="note">Shows where an area is mapped, not what happens there. Biggest areas show first when zoomed out.</p>
+        {:else if layer.id === 'bikeshare'}
+          <div class="row"><span class="h">Bikes at the station</span>
+            {#each levels as l (l.level)}
+              {@const h = 22 * BIKE_LEVEL_FILL[l.level]}
+              <span class="item"><svg width="20" height="20" viewBox="0 0 40 40" aria-hidden="true">
+                <defs><clipPath id="{uid}-hex{l.level}"><polygon points={HEX} /></clipPath></defs>
+                <polygon points={HEX} class="hex body" />
+                {#if h > 0}<rect x="9" y={31 - h} width="22" height={h} class="hex-fill" clip-path="url(#{uid}-hex{l.level})" />{/if}
+                <polygon points={HEX} class="hex rim" />
+              </svg>{l.label}</span>
+            {/each}
+          </div>
+          <div class="row"><span class="h">Other</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex body" /><polygon points={HEX} class="hex rim" /><circle cx="20" cy="20" r="3.6" class="hex-fill" /></svg>Bikes, docks not counted</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex body dim" /><polygon points={HEX} class="hex rim dashed dim" /><path d="M15.5 15.5 L24.5 24.5 M24.5 15.5 L15.5 24.5" class="hex-x" /></svg>Out of service</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex rim dashed" /></svg>No reading</span>
+          </div>
+          <p class="note">Filled share is bikes over docks. Counts are as the operator last reported them.</p>
+        {:else if layer.id === 'radio'}
+          <div class="row">
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="12" class="ring" /><circle cx="20" cy="20" r="4.5" class="ring-dot" /></svg>Plays here</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="12" class="ring" /></svg>Opens as a link</span>
+          </div>
+          <div class="row"><span class="h">Size</span>
+            {#each [14, 17, 20] as d, i (d)}
+              <span class="item"><svg width={d + 2} height={d + 2} aria-hidden="true"><circle cx={(d + 2) / 2} cy={(d + 2) / 2} r={d / 2 - 1.5} class="ring thin" /></svg>{['Few listens', 'Some', 'Many'][i]}</span>
+            {/each}
+          </div>
+          <p class="note">Positions are as entered by the station list's contributors.</p>
         {:else if layer.id === 'launches'}
           <div class="row">
             <span class="item"><svg width={LAUNCH_PX.upcoming} height={LAUNCH_PX.upcoming} viewBox="0 0 40 40" aria-hidden="true"><polygon points={STAR} class="star solid" /></svg>Upcoming</span>
@@ -227,5 +267,42 @@
     stroke: var(--map-hazards);
     stroke-width: 3.5;
     stroke-linecap: round;
+  }
+  .hex {
+    stroke-linejoin: round;
+  }
+  .hex.body {
+    fill: var(--map-halo);
+  }
+  .hex.rim {
+    fill: none;
+    stroke: var(--map-ground);
+    stroke-width: 3;
+  }
+  .hex.dashed {
+    stroke-dasharray: 5 4;
+  }
+  .hex.dim {
+    opacity: 0.6;
+  }
+  .hex-fill {
+    fill: var(--map-ground);
+  }
+  .hex-x {
+    stroke: var(--map-ground);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0.7;
+  }
+  .ring {
+    fill: none;
+    stroke: var(--map-signals);
+    stroke-width: 3.4;
+  }
+  .ring.thin {
+    stroke-width: 1.8;
+  }
+  .ring-dot {
+    fill: var(--map-signals);
   }
 </style>

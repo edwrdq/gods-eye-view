@@ -57,6 +57,12 @@ at the end of each work session.
   the initial ramp and likely to settle higher. Set `FLIGHTS_STORE_INTERVAL_S`
   and `VESSELS_STORE_INTERVAL_S` to taste.
 
+## Bikeshare and radio (2026-10-02)
+
+- Bikeshare: GBFS. `server/static-data/gbfs/systems.json` (406 docked bike systems, bounding boxes measured once by `npm run bikeshare:index`, which contacts every catalogue system one time) says where each system is; the live MobilityData catalogue (daily, cached under DATA_DIR/cache) supplies names and addresses. A view fetches only the systems it overlaps (at most 6, none when the view is wider than 12 degrees); station_information is cached 3-48 h, station_status 60-120 s, both honouring each feed's ttl; fetches are capped at 4 at once and 2 per host; failing systems back off 2-30 min and keep serving their last data. See `server/static-data/gbfs/README.md`.
+- Radio: Radio Browser (server found by DNS lookup of all.api.radio-browser.info as its docs ask, then the HTTP list, then built-in names). About 12,900 geo-located stations fetched in pages, cached on disk, refreshed every 6 h. World zoom thinned to 1,500 with `thinGrid`.
+- `FeaturesFeed.features` may now return a promise (bikeshare waits for its operators, up to 9 s per view).
+
 ## Still unverified
 
 - Google Photorealistic 3D with a direct `GOOGLE_MAPS_API_KEY` (none was set in
@@ -76,9 +82,8 @@ time slider, font path, impeccable audit), phase 3 keyless layers drawn
 recorded state everywhere, even thinning over the snapshot cap.
 
 1. Verify Google Photorealistic 3D with a direct `GOOGLE_MAPS_API_KEY`.
-2. Remaining layers: fires (FIRMS key), weather/wind, submarine cables,
-   datacenters, installations, transit, bikeshare, traffic, ALPR, CCTV,
-   radio/SDR.
+2. Remaining layers: fires (FIRMS key), weather/wind, transit, traffic, ALPR,
+   CCTV, SDR.
 3. Research features from PLAN.md: area watch, saved searches, export
    (CSV/GeoJSON), earthquake backfill on first run.
 4. Settle history defaults with the owner (HISTORY_DAYS, store intervals);
