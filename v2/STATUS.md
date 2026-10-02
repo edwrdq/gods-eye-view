@@ -70,15 +70,19 @@ at the end of each work session.
 
 ## Next
 
-1. Clean-up pass: military marker distinct from civil, time slider drives the
-   NASA GIBS date, font path not relative into node_modules, full impeccable
-   audit of the UI. (adsb.lol politeness done: 60 s polls, 3 viewport areas.)
-2. Phase 3 keyless layers: earthquakes (USGS), satellites (CelesTrak TLE),
-   launches, cyclones (NHC). Then keyed/heavier: fires (FIRMS), weather/wind,
-   cables, datacenters, installations, transit, bikeshare, traffic, ALPR,
-   CCTV, radio/SDR.
-3. Settle history defaults with the owner (HISTORY_DAYS, store intervals);
-   global OpenSky and AIS each record a few GB per day at current defaults.
+Done since the last update: clean-up pass (military marker, GIBS follows the
+time slider, font path, impeccable audit), phase 3 keyless layers drawn
+(earthquakes, cyclones, launches, satellites), label decluttering, live vs
+recorded state everywhere, even thinning over the snapshot cap.
+
+1. Verify Google Photorealistic 3D with a direct `GOOGLE_MAPS_API_KEY`.
+2. Remaining layers: fires (FIRMS key), weather/wind, submarine cables,
+   datacenters, installations, transit, bikeshare, traffic, ALPR, CCTV,
+   radio/SDR.
+3. Research features from PLAN.md: area watch, saved searches, export
+   (CSV/GeoJSON), earthquake backfill on first run.
+4. Settle history defaults with the owner (HISTORY_DAYS, store intervals);
+   real-key test measured about 148 MB/hour for flights plus vessels.
 
 ## Known issues
 
