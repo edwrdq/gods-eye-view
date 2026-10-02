@@ -1,0 +1,292 @@
+/*
+  God's Eye View v2 - design tokens. See v2/DESIGN.md for rationale.
+  Dark is the default. Light applies via prefers-color-scheme (when no
+  data-theme is set) or explicitly with <html data-theme="light">.
+  Components should only use semantic tokens (--surface-*, --text-*, --cat-*,
+  --status-*), never raw hex values.
+*/
+
+/* ---------- Theme-independent tokens ---------- */
+:root {
+  /* Type: system stacks only, no network fonts. */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Type scale (fixed rem, ratio ~1.125). Root is 16px; UI body is 13px. */
+  --text-2xs: 0.6875rem;  /* 11px  tiny badges only; never for prose */
+  --text-xs: 0.75rem;     /* 12px  meta, captions, status bar */
+  --text-sm: 0.8125rem;   /* 13px  default UI text */
+  --text-md: 0.9375rem;   /* 15px  panel titles, search input */
+  --text-lg: 1.125rem;    /* 18px  detail panel heading */
+  --text-xl: 1.375rem;    /* 22px  empty-state / page titles (rare) */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  --leading-tight: 1.25;
+  --leading-ui: 1.4;
+  --leading-prose: 1.55;
+  --tracking-normal: 0;
+  --tracking-caps: 0.02em;  /* only if a tiny label is ever uppercased; default is sentence case */
+
+  /* Spacing: 4px base. */
+  --space-0: 0;
+  --space-1: 0.125rem;  /* 2 */
+  --space-2: 0.25rem;   /* 4 */
+  --space-3: 0.5rem;    /* 8 */
+  --space-4: 0.75rem;   /* 12 */
+  --space-5: 1rem;      /* 16 */
+  --space-6: 1.5rem;    /* 24 */
+  --space-7: 2rem;      /* 32 */
+  --space-8: 3rem;      /* 48 */
+
+  /* Radii */
+  --radius-xs: 3px;    /* badges, kbd */
+  --radius-sm: 6px;    /* buttons, inputs, rows */
+  --radius-md: 10px;   /* panels */
+  --radius-lg: 14px;   /* sheets on narrow screens */
+  --radius-full: 999px;
+
+  /* Layout */
+  --shell-gutter: 12px;
+  --topbar-h: 44px;
+  --statusbar-h: 28px;
+  --panel-left-w: 320px;
+  --panel-right-w: 340px;
+  --control-h: 32px;       /* buttons, inputs */
+  --control-h-lg: 40px;    /* search box, touch targets on narrow screens */
+  --row-h: 56px;           /* layer row min height */
+  --target-min: 24px;      /* WCAG 2.2 minimum target size */
+
+  /* Motion: functional only. */
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 240ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Focus ring */
+  --focus-width: 2px;
+  --focus-offset: 2px;
+
+  /* Z layers */
+  --z-globe: 0;
+  --z-panel: 10;
+  --z-bar: 20;
+  --z-popover: 30;
+  --z-toast: 40;
+
+  /* Map marker colors are theme-independent: they sit on imagery, not on UI
+     surfaces. Bright, with a dark halo (--map-halo) for separation on pale
+     terrain, cloud and ice, and a light core stroke on dark ocean. */
+  --map-air: #42aef5;
+  --map-sea: #22c4ab;
+  --map-space: #b890fa;
+  --map-hazards: #ff6450;
+  --map-weather: #ffd23f;
+  --map-infrastructure: #f28cc2;
+  --map-ground: #a3d64f;
+  --map-signals: #dfe6ee;
+  --map-halo: rgb(8 12 18 / 0.85);
+  --map-selection: #ffffff;
+}
+
+/* ---------- Dark theme (default) ---------- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-canvas: #0a0e13;                 /* behind the globe / loading */
+  --surface-panel: rgb(19 25 32 / 0.94);     /* floating panels */
+  --surface-panel-solid: #131920;
+  --surface-raised: #1a212a;                 /* inputs, hovered rows, menus */
+  --surface-sunken: #0f141a;                 /* wells, code, scroll tracks */
+  --surface-bar: rgb(15 20 26 / 0.92);       /* top and status bar */
+  --surface-overlay: rgb(5 8 12 / 0.55);
+
+  --border-subtle: #232c37;
+  --border-default: #2f3a47;
+  --border-strong: #4a586a;                  /* control outlines, >=3:1 on panel */
+
+  --text-primary: #e8edf3;     /* 15.0:1 on panel */
+  --text-secondary: #a9b4c2;   /* 8.4:1 */
+  --text-tertiary: #8793a3;    /* 5.7:1  (placeholders, meta) */
+  --text-disabled: #667282;    /* decorative only; pair with 'Planned' text */
+  --text-inverse: #0a0e13;
+
+  --accent: #7c9cff;           /* 6.8:1 on panel */
+  --accent-hover: #96b0ff;
+  --accent-pressed: #6486f0;
+  --accent-subtle: rgb(124 156 255 / 0.16);
+  --accent-on: #0a0e13;        /* text on solid accent, 7.2:1 */
+  --focus-ring: #a9bdff;
+
+  --hover-overlay: rgb(255 255 255 / 0.05);
+  --active-overlay: rgb(255 255 255 / 0.09);
+  --selected-bg: rgb(124 156 255 / 0.12);
+
+  /* Data categories, UI use (swatches, chips, icons on panels). All >=5.6:1 on panel. */
+  --cat-air: #42aef5;
+  --cat-sea: #22c4ab;
+  --cat-space: #b890fa;
+  --cat-hazards: #ff6450;
+  --cat-weather: #ffd23f;
+  --cat-infrastructure: #f28cc2;
+  --cat-ground: #a3d64f;
+  --cat-signals: #dfe6ee;
+
+  /* Status */
+  --status-live: #4cc38a;        /* 8.0:1 */
+  --status-live-bg: rgb(76 195 138 / 0.14);
+  --status-stale: #e0a43a;       /* 8.0:1 */
+  --status-stale-bg: rgb(224 164 58 / 0.14);
+  --status-error: #ff7b72;       /* 7.0:1 */
+  --status-error-bg: rgb(255 123 114 / 0.14);
+  --status-key: #b6a2ff;         /* 8.1:1 */
+  --status-key-bg: rgb(182 162 255 / 0.14);
+  --status-planned: #8793a3;
+  --status-loading: #a9b4c2;
+
+  /* Elevation: offset + soft blur, plus a hairline edge. */
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.04) inset;
+  --shadow-2: 0 4px 16px rgb(0 0 0 / 0.45), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+  --panel-blur: 14px;
+
+  --scrollbar-thumb: #3a4756;
+  --scrollbar-thumb-hover: #4f5e70;
+  --selection-bg: rgb(124 156 255 / 0.35);
+}
+
+/* ---------- Light theme ---------- */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    --surface-canvas: #dfe5ec;
+    --surface-panel: rgb(255 255 255 / 0.95);
+    --surface-panel-solid: #ffffff;
+    --surface-raised: #f1f4f8;
+    --surface-sunken: #e8ecf1;
+    --surface-bar: rgb(255 255 255 / 0.92);
+    --surface-overlay: rgb(20 26 34 / 0.35);
+
+    --border-subtle: #e2e7ee;
+    --border-default: #cfd6e0;
+    --border-strong: #7d8a9b;
+
+    --text-primary: #141a22;     /* 17.5:1 */
+    --text-secondary: #4a5666;   /* 7.5:1 */
+    --text-tertiary: #5f6b7a;    /* 5.4:1 */
+    --text-disabled: #8a95a3;
+    --text-inverse: #ffffff;
+
+    --accent: #2f4fd0;           /* 6.7:1 on white */
+    --accent-hover: #2441b8;
+    --accent-pressed: #1c359c;
+    --accent-subtle: rgb(47 79 208 / 0.1);
+    --accent-on: #ffffff;
+    --focus-ring: #2f4fd0;
+
+    --hover-overlay: rgb(20 26 34 / 0.05);
+    --active-overlay: rgb(20 26 34 / 0.09);
+    --selected-bg: rgb(47 79 208 / 0.08);
+
+    --cat-air: #1565c9;
+    --cat-sea: #007a6c;
+    --cat-space: #6a45d0;
+    --cat-hazards: #c4321f;
+    --cat-weather: #8f6700;
+    --cat-infrastructure: #b0307c;
+    --cat-ground: #4a7a0c;
+    --cat-signals: #445163;
+
+    --status-live: #0f7a46;
+    --status-live-bg: rgb(15 122 70 / 0.1);
+    --status-stale: #8a5a00;
+    --status-stale-bg: rgb(138 90 0 / 0.1);
+    --status-error: #c0281d;
+    --status-error-bg: rgb(192 40 29 / 0.09);
+    --status-key: #5b3fc4;
+    --status-key-bg: rgb(91 63 196 / 0.09);
+    --status-planned: #5f6b7a;
+    --status-loading: #4a5666;
+
+    --shadow-1: 0 1px 2px rgb(20 30 45 / 0.12), 0 0 0 1px rgb(20 30 45 / 0.04);
+    --shadow-2: 0 4px 16px rgb(20 30 45 / 0.16), 0 1px 3px rgb(20 30 45 / 0.12);
+    --shadow-3: 0 12px 32px rgb(20 30 45 / 0.22), 0 2px 6px rgb(20 30 45 / 0.14);
+
+    --scrollbar-thumb: #c3cbd6;
+    --scrollbar-thumb-hover: #a5afbd;
+    --selection-bg: rgb(47 79 208 / 0.22);
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --surface-canvas: #dfe5ec;
+  --surface-panel: rgb(255 255 255 / 0.95);
+  --surface-panel-solid: #ffffff;
+  --surface-raised: #f1f4f8;
+  --surface-sunken: #e8ecf1;
+  --surface-bar: rgb(255 255 255 / 0.92);
+  --surface-overlay: rgb(20 26 34 / 0.35);
+
+  --border-subtle: #e2e7ee;
+  --border-default: #cfd6e0;
+  --border-strong: #7d8a9b;
+
+  --text-primary: #141a22;
+  --text-secondary: #4a5666;
+  --text-tertiary: #5f6b7a;
+  --text-disabled: #8a95a3;
+  --text-inverse: #ffffff;
+
+  --accent: #2f4fd0;
+  --accent-hover: #2441b8;
+  --accent-pressed: #1c359c;
+  --accent-subtle: rgb(47 79 208 / 0.1);
+  --accent-on: #ffffff;
+  --focus-ring: #2f4fd0;
+
+  --hover-overlay: rgb(20 26 34 / 0.05);
+  --active-overlay: rgb(20 26 34 / 0.09);
+  --selected-bg: rgb(47 79 208 / 0.08);
+
+  --cat-air: #1565c9;
+  --cat-sea: #007a6c;
+  --cat-space: #6a45d0;
+  --cat-hazards: #c4321f;
+  --cat-weather: #8f6700;
+  --cat-infrastructure: #b0307c;
+  --cat-ground: #4a7a0c;
+  --cat-signals: #445163;
+
+  --status-live: #0f7a46;
+  --status-live-bg: rgb(15 122 70 / 0.1);
+  --status-stale: #8a5a00;
+  --status-stale-bg: rgb(138 90 0 / 0.1);
+  --status-error: #c0281d;
+  --status-error-bg: rgb(192 40 29 / 0.09);
+  --status-key: #5b3fc4;
+  --status-key-bg: rgb(91 63 196 / 0.09);
+  --status-planned: #5f6b7a;
+  --status-loading: #4a5666;
+
+  --shadow-1: 0 1px 2px rgb(20 30 45 / 0.12), 0 0 0 1px rgb(20 30 45 / 0.04);
+  --shadow-2: 0 4px 16px rgb(20 30 45 / 0.16), 0 1px 3px rgb(20 30 45 / 0.12);
+  --shadow-3: 0 12px 32px rgb(20 30 45 / 0.22), 0 2px 6px rgb(20 30 45 / 0.14);
+
+  --scrollbar-thumb: #c3cbd6;
+  --scrollbar-thumb-hover: #a5afbd;
+  --selection-bg: rgb(47 79 208 / 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur-base: 0.01ms;
+    --dur-slow: 0.01ms;
+  }
+}
