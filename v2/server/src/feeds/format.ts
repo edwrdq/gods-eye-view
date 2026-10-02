@@ -28,3 +28,22 @@ export function row(label: string, value: PropValue | undefined, extra: Partial<
   if (value === undefined || value === null || value === '') return null;
   return { label, value, ...extra };
 }
+
+/** "5 min ago", "3 h 12 min ago", "in 2 d 4 h"; `deltaMs` is now minus then. */
+export function fmtAgo(deltaMs: number): string {
+  const future = deltaMs < 0;
+  const mins = Math.round(Math.abs(deltaMs) / 60_000);
+  if (mins < 1) return 'just now';
+  let body: string;
+  if (mins < 60) body = `${mins} min`;
+  else if (mins < 1440) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    body = m ? `${h} h ${m} min` : `${h} h`;
+  } else {
+    const d = Math.floor(mins / 1440);
+    const h = Math.floor((mins % 1440) / 60);
+    body = h ? `${d} d ${h} h` : `${d} d`;
+  }
+  return future ? `in ${body}` : `${body} ago`;
+}

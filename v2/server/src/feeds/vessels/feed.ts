@@ -1,7 +1,7 @@
 import type { FeedStatus, ObjectDetail, Observation } from '@gev/shared';
 import { FeedHealth } from '../health.ts';
 import { LivePicture, pickProps, type ThrottlePolicy } from '../live-picture.ts';
-import { realTimers, type Feed, type FeedLayer, type ObservationSink, type Timers } from '../types.ts';
+import { realTimers, type TrackedFeed, type FeedLayer, type ObservationSink, type Timers } from '../types.ts';
 import { buildVesselDetail } from './detail.ts';
 import {
   classifyAisError,
@@ -67,7 +67,7 @@ export interface VesselsFeedDeps {
   storeIntervalMs?: number;
 }
 
-export class VesselsFeed implements Feed {
+export class VesselsFeed implements TrackedFeed {
   readonly id = 'vessels';
   readonly freshnessMs = VESSELS_FRESHNESS_MS;
   readonly layers: readonly FeedLayer[] = [

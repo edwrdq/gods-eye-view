@@ -46,6 +46,30 @@ export const migrations: Migration[] = [
       CREATE INDEX observations_layer_time_object ON observations (layer, t, object_id);
     `,
   },
+  {
+    version: 3,
+    name: 'features',
+    // Point events kept for time-travel queries (earthquakes). One row per event
+    // id, replaced when the source publishes a newer revision (`updated`).
+    // `rank` orders results when a response is capped (magnitude for quakes).
+    // `extra` holds detail-only fields so history can render the detail panel.
+    sql: `
+      CREATE TABLE features (
+        layer TEXT NOT NULL,
+        id TEXT NOT NULL,
+        t INTEGER NOT NULL,
+        updated INTEGER NOT NULL,
+        lon REAL NOT NULL,
+        lat REAL NOT NULL,
+        rank REAL NOT NULL,
+        label TEXT,
+        props TEXT NOT NULL,
+        extra TEXT NOT NULL,
+        PRIMARY KEY (layer, id)
+      ) WITHOUT ROWID;
+      CREATE INDEX features_layer_time ON features (layer, t);
+    `,
+  },
 ];
 
 /** Apply pending migrations in order, each in its own transaction. Returns versions applied. */

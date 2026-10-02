@@ -1,7 +1,7 @@
 import type { BBox, FeedStatus, ObjectDetail, Observation } from '@gev/shared';
 import { FeedHealth } from '../health.ts';
 import { LivePicture, pickProps, type ThrottlePolicy } from '../live-picture.ts';
-import { realTimers, type Feed, type FeedLayer, type FetchLike, type ObservationSink, type Timers } from '../types.ts';
+import { realTimers, type TrackedFeed, type FeedLayer, type FetchLike, type ObservationSink, type Timers } from '../types.ts';
 import { AreaBook, areaKey, MAX_RADIUS_NM, type Area } from './areas.ts';
 import type { FlightsConfig } from './config.ts';
 import { buildFlightDetail } from './detail.ts';
@@ -68,7 +68,7 @@ function retryAfter(res: Response): number | null {
   return Number.isFinite(n) && n > 0 ? n * 1000 : null;
 }
 
-export class FlightsFeed implements Feed {
+export class FlightsFeed implements TrackedFeed {
   readonly id = 'flights';
   readonly freshnessMs = FLIGHTS_FRESHNESS_MS;
   readonly layers: readonly FeedLayer[] = [

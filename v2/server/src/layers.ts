@@ -1,4 +1,4 @@
-import type { LayerDescriptor } from '@gev/shared';
+import type { LayerDescriptor, LayerKind } from '@gev/shared';
 
 type Spec = Omit<LayerDescriptor, 'status'>;
 
@@ -161,7 +161,18 @@ const specs: Spec[] = [
 ];
 
 /** Layers with a server feed implementation (enabled or not). */
-const implemented: ReadonlySet<string> = new Set(['flights', 'military-flights', 'vessels']);
+const implemented: ReadonlySet<string> = new Set([
+  'flights',
+  'military-flights',
+  'vessels',
+  'satellites',
+  'launches',
+  'earthquakes',
+  'cyclones',
+]);
+
+/** How each catalog layer is served (see LayerKind). */
+export const layerKinds: ReadonlyMap<string, LayerKind> = new Map(specs.map((s) => [s.id, s.kind]));
 
 /** All catalog layer ids. */
 export const layerIds: ReadonlySet<string> = new Set(specs.map((s) => s.id));

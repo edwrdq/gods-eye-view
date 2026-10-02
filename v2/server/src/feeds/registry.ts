@@ -1,5 +1,10 @@
 import type { Config } from '../config.ts';
 import type { Db } from '../db/index.ts';
+import path from 'node:path';
+import { CyclonesFeed, CYCLONES_FRESHNESS_MS } from './cyclones/feed.ts';
+import { EarthquakesFeed, EARTHQUAKES_FRESHNESS_MS } from './earthquakes/feed.ts';
+import { LaunchesFeed, LAUNCHES_FRESHNESS_MS } from './launches/feed.ts';
+import { DEFAULT_GROUPS, SatellitesFeed, SATELLITES_FRESHNESS_MS } from './satellites/feed.ts';
 import { FlightsFeed, FLIGHTS_FRESHNESS_MS } from './flights/feed.ts';
 import { loadFlightsConfig } from './flights/config.ts';
 import { createAdsbdbEnricher } from './flights/enrich.ts';
@@ -11,6 +16,10 @@ import type { Feed, FetchLike, Timers } from './types.ts';
 export const FEED_DEFINITIONS: FeedDefinition[] = [
   { id: 'flights', layers: ['flights', 'military-flights'], freshnessMs: FLIGHTS_FRESHNESS_MS },
   { id: 'vessels', layers: ['vessels'], freshnessMs: VESSELS_FRESHNESS_MS },
+  { id: 'earthquakes', layers: ['earthquakes'], freshnessMs: EARTHQUAKES_FRESHNESS_MS },
+  { id: 'cyclones', layers: ['cyclones'], freshnessMs: CYCLONES_FRESHNESS_MS },
+  { id: 'launches', layers: ['launches'], freshnessMs: LAUNCHES_FRESHNESS_MS },
+  { id: 'satellites', layers: ['satellites'], freshnessMs: SATELLITES_FRESHNESS_MS },
 ];
 
 /** Layer ids with a working server implementation (used for /api/config statuses). */
@@ -21,8 +30,8 @@ export function implementedLayers(enabledFeedIds: readonly string[]): Set<string
 }
 
 export interface BuildFeedsDeps {
-  config: Pick<Config, 'feeds' | 'historyDays' | 'env'>;
-  db: Pick<Db, 'observations'>;
+  config: Pick<Config, 'feeds' | 'historyDays' | 'env' | 'dataDir'>;
+  db: Pick<Db, 'observations' | 'features'>;
   fetch?: FetchLike;
   WebSocket?: WebSocketCtor;
   now?: () => number;
@@ -86,6 +95,48 @@ export function buildFeedManager(deps: BuildFeedsDeps): FeedManager {
         }),
       );
       if (!key) log('vessels: AISSTREAM_API_KEY is not set; feed reports needs-key');
+    } else if (id === 'earthquakes') {
+      const days = Number(env.EARTHQUAKES_HISTORY_DAYS);
+      feeds.push(
+        new EarthquakesFeed({
+          fetch: fetchFn,
+          repo: deps.db.features,
+          retentionDays: Number.isFinite(days) && days > 0 ? days : undefined,
+          now: deps.now,
+          timers: deps.timers,
+          log,
+        }),
+      );
+    } else if (id === 'cyclones') {
+      feeds.push(new CyclonesFeed({ fetch: fetchFn, now: deps.now, timers: deps.timers, log }));
+    } else if (id === 'launches') {
+      const poll = Number(env.LAUNCHES_POLL_S);
+      feeds.push(
+        new LaunchesFeed({
+          fetch: fetchFn,
+          cacheFile: path.join(deps.config.dataDir, 'cache', 'launches.json'),
+          token: env.LL2_API_TOKEN?.trim() || null,
+          pollMs: Number.isFinite(poll) && poll > 0 ? poll * 1000 : undefined,
+          now: deps.now,
+          timers: deps.timers,
+          log,
+        }),
+      );
+    } else if (id === 'satellites') {
+      const groups = (env.SATELLITE_GROUPS ?? '')
+        .split(',')
+        .map((g) => g.trim().toLowerCase())
+        .filter((g) => /^[a-z0-9-]{1,40}$/.test(g));
+      feeds.push(
+        new SatellitesFeed({
+          fetch: fetchFn,
+          cacheDir: path.join(deps.config.dataDir, 'cache', 'celestrak'),
+          groups: groups.length > 0 ? groups : DEFAULT_GROUPS,
+          now: deps.now,
+          timers: deps.timers,
+          log,
+        }),
+      );
     } else {
       log(`unknown feed "${id}" in FEEDS (known: ${FEED_DEFINITIONS.map((d) => d.id).join(', ')}); ignoring`);
     }

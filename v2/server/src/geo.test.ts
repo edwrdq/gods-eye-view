@@ -47,3 +47,22 @@ test('distance, heading delta, compass, wrap, centre', () => {
   assert.equal(Math.abs(c.lon), 180);
   assert.equal(c.widthDeg, 20);
 });
+
+test('geometryIntersects: points, lines, polygons, multi-parts and the antimeridian', async () => {
+  const { geometryIntersects } = await import('./geo.ts');
+  const sf: [number, number, number, number] = [-125, 30, -115, 45];
+  assert.equal(geometryIntersects({ type: 'Point', coordinates: [-122, 37] }, sf), true);
+  assert.equal(geometryIntersects({ type: 'Point', coordinates: [10, 37] }, sf), false);
+  // a line passing through the box without a vertex inside it
+  assert.equal(geometryIntersects({ type: 'LineString', coordinates: [[-130, 35], [-110, 40]] }, sf), true);
+  assert.equal(geometryIntersects({ type: 'LineString', coordinates: [[-130, 50], [-110, 60]] }, sf), false);
+  assert.equal(geometryIntersects({ type: 'MultiLineString', coordinates: [[[0, 0], [1, 1]], [[-120, 35], [-119, 36]]] }, sf), true);
+  assert.equal(geometryIntersects({ type: 'Polygon', coordinates: [[[-130, 25], [-110, 25], [-110, 50], [-130, 50], [-130, 25]]] }, sf), true);
+  assert.equal(geometryIntersects({ type: 'Polygon', coordinates: [[[0, 0], [1, 0], [1, 1], [0, 0]]] }, sf), false);
+  // a line that crosses 180 stored as one part (lon jumps) intersects a box across the dateline
+  const across = { type: 'LineString', coordinates: [[170, 10], [179, 11], [-179, 12], [-170, 13]] };
+  assert.equal(geometryIntersects(across, [175, 5, -175, 20]), true);
+  assert.equal(geometryIntersects(across, [-100, 5, -90, 20]), false);
+  assert.equal(geometryIntersects({ type: 'Point', coordinates: [-179.5, 0] }, [170, -10, -170, 10]), true);
+  assert.equal(geometryIntersects({ type: 'Nope', coordinates: [] }, sf), false);
+});

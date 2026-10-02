@@ -416,11 +416,19 @@
     border-radius: var(--radius-sm);
   }
   @media (max-width: 760px) {
+    /* Anchor to the whole tools island and fill the width between the gutters. */
+    .wrap {
+      position: static;
+    }
+    .popover {
+      width: calc(100vw - var(--shell-gutter) * 2);
+      right: 0;
+      top: calc(100% + var(--space-3));
+    }
     .radio {
       min-height: 44px;
     }
     .popover {
-      right: calc(var(--space-1) * -1);
       /* leave room for the time slider docked above the status bar */
       max-height: calc(100dvh - 250px);
     }

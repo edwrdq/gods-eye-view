@@ -1,6 +1,7 @@
 import { mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { createFeatureRepo, type FeatureRepo } from './features.ts';
 import { migrate } from './migrations.ts';
 import { createObservationRepo, type ObservationRepo } from './observations.ts';
 
@@ -8,6 +9,7 @@ export interface Db {
   path: string;
   raw: DatabaseSync;
   observations: ObservationRepo;
+  features: FeatureRepo;
   sizeBytes(): number;
   close(): void;
 }
@@ -24,6 +26,7 @@ export function openDb(file: string): Db {
     path: file,
     raw,
     observations: createObservationRepo(raw),
+    features: createFeatureRepo(raw),
     sizeBytes() {
       if (file === ':memory:') return 0;
       let total = 0;

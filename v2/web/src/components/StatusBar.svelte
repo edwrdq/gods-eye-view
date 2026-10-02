@@ -46,13 +46,13 @@
   <span class="seg seg-coord"><span class="lbl">{label}</span> <b class="mono coord truncate">{shown ? formatLatLonHemi(shown.lat, shown.lon) : '—'}</b></span>
   <span class="seg seg-alt"><span class="lbl">Altitude</span> <b class="num">{globeState.altitude === null ? '—' : formatAltitude(globeState.altitude)}</b></span>
   <span class="grow"></span>
-  <span class="seg src-wrap hide-narrow" bind:this={sourcesWrap}>
-    <button class="seg-btn" type="button" aria-expanded={sourcesOpen} aria-haspopup="dialog" title="Show per-source freshness" onclick={() => (sourcesOpen = !sourcesOpen)}>
+  <span class="seg src-wrap" bind:this={sourcesWrap}>
+    <button class="seg-btn" type="button" aria-label={summary.total > 0 ? `Data sources: ${summary.fresh} of ${summary.total} fresh` : undefined} aria-expanded={sourcesOpen} aria-haspopup="dialog" title="Show per-source freshness" onclick={() => (sourcesOpen = !sourcesOpen)}>
       {#if summary.total === 0}
         Sources <b>{feedStore.failed ? 'Unavailable' : feedStore.loaded ? 'None running' : '—'}</b>
       {:else}
         <StatusChip tone={allFresh ? 'live' : 'stale'}>{#if allFresh}<span class="dot"></span>Live{:else}<Clock size={12} strokeWidth={2} aria-hidden="true" />Stale{/if}</StatusChip>
-        <span class="num">{summary.fresh} of {summary.total} sources fresh</span>
+        <span class="num src-text">{summary.fresh} of {summary.total} sources fresh</span>
       {/if}
     </button>
     {#if sourcesOpen}<SourcesPopover onClose={() => (sourcesOpen = false)} />{/if}
@@ -159,8 +159,13 @@
       padding: 0 var(--space-3);
     }
     .lbl,
-    .long {
+    .long,
+    .src-text {
       display: none;
+    }
+    /* The sources popover spans the bar, not its button. */
+    .src-wrap {
+      position: static;
     }
     .seg-coord {
       min-width: 0;

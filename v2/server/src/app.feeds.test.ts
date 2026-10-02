@@ -71,7 +71,15 @@ function flight(id: string, over: Partial<Observation> = {}): Observation {
 test('GET /api/feeds lists every implemented layer with its state', async () => {
   const { get, flights } = setup({ vessels: 'nokey' });
   let { body } = await get<FeedsResponse>('/api/feeds');
-  assert.deepEqual(body.feeds.map((f) => [f.layer, f.state]), [['flights', 'off'], ['military-flights', 'off'], ['vessels', 'needs-key']]);
+  assert.deepEqual(body.feeds.map((f) => [f.layer, f.state]), [
+    ['flights', 'off'],
+    ['military-flights', 'off'],
+    ['vessels', 'needs-key'],
+    ['earthquakes', 'off'],
+    ['cyclones', 'off'],
+    ['launches', 'off'],
+    ['satellites', 'off'],
+  ]);
   flights.start();
   await flights.idle();
   ({ body } = await get<FeedsResponse>('/api/feeds'));
@@ -92,7 +100,7 @@ test('disabled feeds report off and layers they serve answer 409', async () => {
 test('snapshot error semantics: 404 unknown layer, 409 not ready / needs key, 400 bad params', async () => {
   const { get, flights } = setup({ vessels: 'nokey' });
   assert.equal((await get('/api/layers/nope/snapshot')).status, 404);
-  assert.equal((await get('/api/layers/satellites/snapshot')).status, 409); // planned layer
+  assert.equal((await get('/api/layers/fires/features')).status, 409); // planned layer
   const nokey = await get<ApiError>('/api/layers/vessels/snapshot');
   assert.equal(nokey.status, 409);
   assert.match(nokey.body.error, /API key/);

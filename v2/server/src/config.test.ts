@@ -29,7 +29,7 @@ test('invalid PORT throws', () => {
 
 test('FEEDS and HISTORY_DAYS', () => {
   const d = loadConfig({});
-  assert.deepEqual(d.feeds, ['flights', 'vessels']);
+  assert.deepEqual(d.feeds, ['flights', 'vessels', 'earthquakes', 'cyclones', 'launches', 'satellites']);
   assert.equal(d.historyDays, 7);
   const c = loadConfig({ FEEDS: ' Flights, vessels ,flights', HISTORY_DAYS: '14' });
   assert.deepEqual(c.feeds, ['flights', 'vessels']);

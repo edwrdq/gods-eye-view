@@ -1,0 +1,461 @@
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "generated": 1790950928000,
+  "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson",
+  "title": "USGS All Earthquakes, Past Day",
+  "status": 200,
+  "api": "2.7.0",
+  "count": 11
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.1,
+    "place": "159 km SE of Gizo, Solomon Islands",
+    "time": 1790916293423,
+    "updated": 1790917177040,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tyzl",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000tyzl.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 400,
+    "net": "us",
+    "code": "6000tyzl",
+    "ids": ",us6000tyzl,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": 52,
+    "dmin": 10.734,
+    "rms": 0.42,
+    "gap": 53,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 5.1 - 159 km SE of Gizo, Solomon Islands"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     158.0215,
+     -8.9326,
+     10
+    ]
+   },
+   "id": "us6000tyzl"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.1,
+    "place": "176 km SE of Lata, Solomon Islands",
+    "time": 1790884834322,
+    "updated": 1790886037040,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tyx0",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000tyx0.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 400,
+    "net": "us",
+    "code": "6000tyx0",
+    "ids": ",us6000tyx0,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": 53,
+    "dmin": 9.229,
+    "rms": 0.71,
+    "gap": 101,
+    "magType": "mb",
+    "type": "earthquake",
+    "title": "M 5.1 - 176 km SE of Lata, Solomon Islands"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     167.0918,
+     -11.6728,
+     10
+    ]
+   },
+   "id": "us6000tyx0"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 5.1,
+    "place": "171 km SE of Lata, Solomon Islands",
+    "time": 1790883481795,
+    "updated": 1790884982040,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000tywu",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000tywu.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 400,
+    "net": "us",
+    "code": "6000tywu",
+    "ids": ",us6000tywu,",
+    "sources": ",us,",
+    "types": ",origin,phase-data,",
+    "nst": 86,
+    "dmin": 9.1,
+    "rms": 0.68,
+    "gap": 112,
+    "magType": "mww",
+    "type": "earthquake",
+    "title": "M 5.1 - 171 km SE of Lata, Solomon Islands"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     166.961,
+     -11.7706,
+     10
+    ]
+   },
+   "id": "us6000tywu"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.31,
+    "place": "6 km SSW of Wapanucka, Oklahoma",
+    "time": 1790891394500,
+    "updated": 1790944589650,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ok2026tglo",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ok2026tglo.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 26,
+    "net": "ok",
+    "code": "2026tglo",
+    "ids": ",ok2026tglo,",
+    "sources": ",ok,",
+    "types": ",origin,phase-data,",
+    "nst": 80,
+    "dmin": 0.1430719244,
+    "rms": 0.5,
+    "gap": 97,
+    "magType": "ml",
+    "type": "quarry blast",
+    "title": "M 1.3 Quarry Blast - 6 km SSW of Wapanucka, Oklahoma"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -96.44966667,
+     34.32,
+     0
+    ]
+   },
+   "id": "ok2026tglo"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.14,
+    "place": "59 km S of Kingston, Nevada",
+    "time": 1790889358837,
+    "updated": 1790899273822,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/nn00925143",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/nn00925143.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 20,
+    "net": "nn",
+    "code": "00925143",
+    "ids": ",nn00925143,",
+    "sources": ",nn,",
+    "types": ",origin,phase-data,",
+    "nst": 13,
+    "dmin": 0.174,
+    "rms": 0.1658,
+    "gap": 157,
+    "magType": "ml",
+    "type": "explosion",
+    "title": "M 1.1 Explosion - 59 km S of Kingston, Nevada"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -117.0849,
+     38.6778,
+     0
+    ]
+   },
+   "id": "nn00925143"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.46,
+    "place": "17 km ENE of Roosevelt, Washington",
+    "time": 1790885020510,
+    "updated": 1790915340430,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/uw714113322",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/uw714113322.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "reviewed",
+    "tsunami": 0,
+    "sig": 33,
+    "net": "uw",
+    "code": "714113322",
+    "ids": ",uw714113322,",
+    "sources": ",uw,",
+    "types": ",origin,phase-data,",
+    "nst": 8,
+    "dmin": 0.1113,
+    "rms": 0.25,
+    "gap": 125,
+    "magType": "md",
+    "type": "explosion",
+    "title": "M 1.5 Explosion - 17 km ENE of Roosevelt, Washington"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -120.013333333333,
+     45.8013333333333,
+     -0.64
+    ]
+   },
+   "id": "uw714113322"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.1,
+    "place": "8 km NNE of Susitna, Alaska",
+    "time": 1790895948151,
+    "updated": 1790901065642,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026tmaess",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026tmaess.geojson",
+    "felt": 1,
+    "cdi": 1,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 68,
+    "net": "ak",
+    "code": "a2026tmaess",
+    "ids": ",aka2026tmaess,",
+    "sources": ",ak,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 28,
+    "dmin": 0.5,
+    "rms": 0.5,
+    "gap": 109,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.1 - 8 km NNE of Susitna, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -150.452,
+     61.611,
+     63.5
+    ]
+   },
+   "id": "aka2026tmaess"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2,
+    "place": "24 km SSW of Anchorage, Alaska",
+    "time": 1790893365543,
+    "updated": 1790901181418,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026tlysmg",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026tlysmg.geojson",
+    "felt": 1,
+    "cdi": 1,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 62,
+    "net": "ak",
+    "code": "a2026tlysmg",
+    "ids": ",aka2026tlysmg,",
+    "sources": ",ak,",
+    "types": ",dyfi,origin,phase-data,",
+    "nst": 42,
+    "dmin": 0.2,
+    "rms": 0.8,
+    "gap": 48,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.0 - 24 km SSW of Anchorage, Alaska"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -150.099,
+     61.02,
+     35.1
+    ]
+   },
+   "id": "aka2026tlysmg"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 2.23,
+    "place": "5 km SW of Volcano, Hawaii",
+    "time": 1790935739340,
+    "updated": 1790935950280,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/hv75048112",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/hv75048112.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 77,
+    "net": "hv",
+    "code": "75048112",
+    "ids": ",hv75048112,",
+    "sources": ",hv,",
+    "types": ",origin,phase-data,",
+    "nst": 28,
+    "dmin": 0.005895,
+    "rms": 0.140000001,
+    "gap": 37,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 2.2 - 5 km SW of Volcano, Hawaii"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -155.279830932617,
+     19.4133338928223,
+     -0.330000013113022
+    ]
+   },
+   "id": "hv75048112"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.23,
+    "place": "7 km N of Beaumont, CA",
+    "time": 1790950635100,
+    "updated": 1790950850260,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41342127",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci41342127.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 23,
+    "net": "ci",
+    "code": "41342127",
+    "ids": ",ci41342127,",
+    "sources": ",ci,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 61,
+    "dmin": 0.1047,
+    "rms": 0.17,
+    "gap": 27,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 1.2 - 7 km N of Beaumont, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -116.972833333333,
+     33.9931666666667,
+     8.43
+    ]
+   },
+   "id": "ci41342127"
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "mag": 1.17,
+    "place": "12 km WNW of Calipatria, CA",
+    "time": 1790950617160,
+    "updated": 1790950846107,
+    "tz": null,
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/ci41342119",
+    "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/ci41342119.geojson",
+    "felt": null,
+    "cdi": null,
+    "mmi": null,
+    "alert": null,
+    "status": "automatic",
+    "tsunami": 0,
+    "sig": 21,
+    "net": "ci",
+    "code": "41342119",
+    "ids": ",ci41342119,",
+    "sources": ",ci,",
+    "types": ",nearby-cities,origin,phase-data,",
+    "nst": 21,
+    "dmin": 0.02043,
+    "rms": 0.23,
+    "gap": 50,
+    "magType": "ml",
+    "type": "earthquake",
+    "title": "M 1.2 - 12 km WNW of Calipatria, CA"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     -115.6345,
+     33.1645,
+     2.83
+    ]
+   },
+   "id": "ci41342119"
+  }
+ ],
+ "bbox": [
+  -178.84033333333,
+  -39.1598,
+  -0.88999998569489,
+  178.6446,
+  66.584,
+  557.245
+ ]
+}

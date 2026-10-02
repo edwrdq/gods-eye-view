@@ -1,4 +1,13 @@
-import type { BBox, FeedStatus, ObjectDetail, Observation } from '@gev/shared';
+import type {
+  BBox,
+  ElementsResponse,
+  Feature,
+  FeatureDetail,
+  FeedStatus,
+  LayerKind,
+  ObjectDetail,
+  Observation,
+} from '@gev/shared';
 import type { LivePicture } from './live-picture.ts';
 
 /** Injectable timer functions so tests (and shutdown) control scheduling. */
@@ -31,6 +40,8 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 export interface FeedLayer {
   /** Public layer id (see layers.ts). */
   id: string;
+  /** How the layer is served; defaults to 'tracked' for the original feeds. */
+  kind?: LayerKind;
   /** Layer name rows are stored under in history. */
   storageLayer: string;
   /** Historical snapshots look back this far from `at` for the latest point. */
@@ -39,23 +50,59 @@ export interface FeedLayer {
   include?: (o: Observation) => boolean;
 }
 
+/** Lifecycle and status shared by every feed, whatever it serves. */
 export interface Feed {
   /** Feed id as used in the FEEDS env list. */
   readonly id: string;
   readonly freshnessMs: number;
   readonly layers: readonly FeedLayer[];
-  /** Live picture (objectId -> latest observation, full props). */
-  readonly live: LivePicture;
   /** Begin background polling / streaming. Idempotent. */
   start(): void;
   stop(): Promise<void>;
   /** Status for one of this feed's layers (default: the first). */
   status(layer?: string): FeedStatus;
+}
+
+/** Moving objects served through snapshots, details and tracks (flights, vessels). */
+export interface TrackedFeed extends Feed {
+  /** Live picture (objectId -> latest observation, full props). */
+  readonly live: LivePicture;
   /** Browser viewport hint from a snapshot request (area-of-interest feeds only). */
   hint?(layer: string, bbox: BBox): void;
   /** Build the detail panel content; must still resolve when enrichment fails. */
   detail(layer: string, obs: Observation, historical: boolean): Promise<ObjectDetail>;
 }
+
+export interface FeatureQuery {
+  bbox?: BBox;
+  /** Inclusive epoch-ms bounds on Feature.t; undefined means the layer's default. */
+  from?: number;
+  to?: number;
+  /** Maximum features to return; the feed sets `truncated` beyond it. */
+  limit: number;
+}
+
+export interface FeatureResult {
+  features: Feature[];
+  truncated: boolean;
+}
+
+/** Events and shapes served through /features (earthquakes, cyclones, launches). */
+export interface FeaturesFeed extends Feed {
+  features(layer: string, query: FeatureQuery): FeatureResult;
+  /** Null when the feature is unknown. Must resolve without network access. */
+  featureDetail(layer: string, featureId: string): Promise<FeatureDetail | null>;
+}
+
+/** Orbital element sets served through /elements (satellites). */
+export interface OrbitsFeed extends Feed {
+  /** Null when `group` is not one of this feed's groups. */
+  elements(layer: string, group?: string): Pick<ElementsResponse, 'groups' | 'elements'> | null;
+}
+
+export const isTrackedFeed = (f: Feed): f is TrackedFeed => 'live' in f;
+export const isFeaturesFeed = (f: Feed): f is FeaturesFeed => 'features' in f;
+export const isOrbitsFeed = (f: Feed): f is OrbitsFeed => 'elements' in f;
 
 /** Persists a batch of observations (one transaction). */
 export type ObservationSink = (batch: Observation[]) => void;

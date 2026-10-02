@@ -4,10 +4,15 @@ import type {
   ApiError,
   BBox,
   ClientConfig,
+  ElementsResponse,
+  FeedStatus,
+  FeatureDetail,
+  FeaturesResponse,
   FeedsResponse,
   GeocodeResponse,
   HealthResponse,
   HistoryRange,
+  LayerKind,
   LayerSnapshot,
   ObjectDetail,
   Observation,
@@ -17,7 +22,8 @@ import type { ObservationRepo } from './db/observations.ts';
 import type { FeedManager } from './feeds/manager.ts';
 import { GeocodeUnavailableError, type Geocoder } from './geocode.ts';
 import { parseBBox } from './geo.ts';
-import { layerIds } from './layers.ts';
+import { layerKinds } from './layers.ts';
+import { isFeaturesFeed, isOrbitsFeed, type Feed, type FeedLayer, type TrackedFeed } from './feeds/types.ts';
 
 export interface AppDeps {
   /** Browser-safe config served verbatim at /api/config. */
@@ -30,10 +36,13 @@ export interface AppDeps {
   observations: Pick<ObservationRepo, 'latestPerObject' | 'latestFor' | 'trackPoints' | 'timeRange'>;
   /** Snapshot cap; default 20 000. */
   maxSnapshotObjects?: number;
+  /** Features cap per response; default 20 000. */
+  maxFeatures?: number;
 }
 
 const MAX_QUERY_LENGTH = 200;
 export const MAX_SNAPSHOT_OBJECTS = 20_000;
+export const MAX_FEATURES = 20_000;
 export const MAX_TRACK_POINTS = 5_000;
 const DEFAULT_TRACK_MS = 6 * 3600_000;
 const MAX_OBJECT_ID_LENGTH = 64;
@@ -88,18 +97,32 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   type Gate =
-    | { ok: true; feed: Extract<ReturnType<FeedManager['resolve']>, { kind: 'ok' }> }
+    | { ok: true; feed: Feed; layer: FeedLayer; status: FeedStatus }
     | { ok: false; status: 404 | 409; message: string };
 
-  /** 404 for layers that do not exist, 409 for layers that exist but cannot serve data now. */
-  function gate(layerId: string): Gate {
-    const r = deps.feeds.resolve(layerId);
-    if (r.kind === 'ok') return { ok: true, feed: r };
-    if (r.kind === 'unknown') {
-      return layerIds.has(layerId)
-        ? { ok: false, status: 409, message: `Layer ${layerId} is not available yet` }
-        : { ok: false, status: 404, message: `Unknown layer: ${layerId}` };
+  const ENDPOINT: Record<LayerKind, string> = {
+    tracked: '/snapshot, /objects and /track',
+    features: '/features',
+    orbits: '/elements',
+  };
+
+  /**
+   * 404 for layers that do not exist or are served by a different endpoint
+   * family (`kind`), 409 for layers of the right kind that cannot serve data now.
+   */
+  function gate(layerId: string, kind: LayerKind): Gate {
+    const actual = layerKinds.get(layerId);
+    if (actual === undefined) return { ok: false, status: 404, message: `Unknown layer: ${layerId}` };
+    if (actual !== kind) {
+      return {
+        ok: false,
+        status: 404,
+        message: `Layer ${layerId} is a ${actual} layer; use /api/layers/${layerId}${ENDPOINT[actual]} (not ${ENDPOINT[kind]})`,
+      };
     }
+    const r = deps.feeds.resolve(layerId);
+    if (r.kind === 'ok') return { ok: true, feed: r.feed, layer: r.layer, status: r.status };
+    if (r.kind === 'unknown') return { ok: false, status: 409, message: `Layer ${layerId} is not available yet` };
     const why = r.status.state === 'needs-key' ? 'needs an API key (see /api/config)' : 'is not enabled on this server';
     return { ok: false, status: 409, message: `Layer ${layerId} ${why}` };
   }
@@ -108,7 +131,7 @@ export function createApp(deps: AppDeps): Hono {
 
   app.get('/api/layers/:id/snapshot', (c) => {
     const layerId = c.req.param('id');
-    const g = gate(layerId);
+    const g = gate(layerId, 'tracked');
     if (!g.ok) return c.json(fail(g.message), g.status);
 
     let bbox: BBox | undefined;
@@ -121,7 +144,8 @@ export function createApp(deps: AppDeps): Hono {
     const at = epochParam(c.req.query('at'));
     if (at === null) return c.json(fail('Query parameter at must be epoch milliseconds'), 400);
 
-    const { feed, layer } = g.feed;
+    const { layer } = g;
+    const feed = g.feed as TrackedFeed;
     let objects: Observation[];
     let truncated: boolean;
     if (at === undefined) {
@@ -142,7 +166,7 @@ export function createApp(deps: AppDeps): Hono {
       layer: layerId,
       at: at ?? now(),
       historical: at !== undefined,
-      feed: g.feed.status,
+      feed: g.status,
       objects,
       truncated,
     };
@@ -156,13 +180,14 @@ export function createApp(deps: AppDeps): Hono {
   app.get('/api/layers/:id/objects/:objectId', async (c) => {
     const layerId = c.req.param('id');
     const objectId = c.req.param('objectId');
-    const g = gate(layerId);
+    const g = gate(layerId, 'tracked');
     if (!g.ok) return c.json(fail(g.message), g.status);
     const at = epochParam(c.req.query('at'));
     if (at === null) return c.json(fail('Query parameter at must be epoch milliseconds'), 400);
     if (!validObjectId(objectId)) return c.json(fail('Object not found'), 404);
 
-    const { feed, layer } = g.feed;
+    const { layer } = g;
+    const feed = g.feed as TrackedFeed;
     const obs =
       at === undefined
         ? (feed.live.get(objectId) ?? deps.observations.latestFor(layer.storageLayer, objectId))
@@ -176,7 +201,7 @@ export function createApp(deps: AppDeps): Hono {
   app.get('/api/layers/:id/objects/:objectId/track', (c) => {
     const layerId = c.req.param('id');
     const objectId = c.req.param('objectId');
-    const g = gate(layerId);
+    const g = gate(layerId, 'tracked');
     if (!g.ok) return c.json(fail(g.message), g.status);
     const toRaw = epochParam(c.req.query('to'));
     const fromRaw = epochParam(c.req.query('from'));
@@ -188,7 +213,8 @@ export function createApp(deps: AppDeps): Hono {
     if (from > to) return c.json(fail('Query parameter from must not be after to'), 400);
     if (!validObjectId(objectId)) return c.json(fail('Object not found'), 404);
 
-    const { feed, layer } = g.feed;
+    const { layer } = g;
+    const feed = g.feed as TrackedFeed;
     const points = deps.observations.trackPoints(layer.storageLayer, objectId, from, to, MAX_TRACK_POINTS);
     // The throttle may not have stored the newest live position yet; include it.
     const liveObs = feed.live.get(objectId);
@@ -197,6 +223,57 @@ export function createApp(deps: AppDeps): Hono {
       points.push([liveObs.t, liveObs.lon, liveObs.lat, liveObs.alt ?? null]);
     }
     const body: Track = { layer: layerId, objectId, points };
+    return c.json(body);
+  });
+
+  const maxFeatures = deps.maxFeatures ?? MAX_FEATURES;
+
+  app.get('/api/layers/:id/features', (c) => {
+    const layerId = c.req.param('id');
+    const g = gate(layerId, 'features');
+    if (!g.ok) return c.json(fail(g.message), g.status);
+
+    let bbox: BBox | undefined;
+    const rawBBox = c.req.query('bbox');
+    if (rawBBox !== undefined && rawBBox !== '') {
+      const parsed = parseBBox(rawBBox);
+      if (typeof parsed === 'string') return c.json(fail(parsed), 400);
+      bbox = parsed;
+    }
+    const from = epochParam(c.req.query('from'));
+    const to = epochParam(c.req.query('to'));
+    if (from === null || to === null) return c.json(fail('Query parameters from and to must be epoch milliseconds'), 400);
+    if (from !== undefined && to !== undefined && from > to) return c.json(fail('Query parameter from must not be after to'), 400);
+    if (!isFeaturesFeed(g.feed)) return c.json(fail(`Layer ${layerId} has no features`), 404);
+
+    const { features, truncated } = g.feed.features(layerId, { bbox, from, to, limit: maxFeatures });
+    const body: FeaturesResponse = { layer: layerId, feed: g.feed.status(layerId), features, truncated };
+    return c.json(body);
+  });
+
+  app.get('/api/layers/:id/features/:featureId', async (c) => {
+    const layerId = c.req.param('id');
+    const featureId = c.req.param('featureId');
+    const g = gate(layerId, 'features');
+    if (!g.ok) return c.json(fail(g.message), g.status);
+    if (!validObjectId(featureId) || !isFeaturesFeed(g.feed)) return c.json(fail('Feature not found'), 404);
+    const body: FeatureDetail | null = await g.feed.featureDetail(layerId, featureId);
+    if (!body) return c.json(fail('Feature not found'), 404);
+    return c.json(body);
+  });
+
+  app.get('/api/layers/:id/elements', (c) => {
+    const layerId = c.req.param('id');
+    const g = gate(layerId, 'orbits');
+    if (!g.ok) return c.json(fail(g.message), g.status);
+    const group = c.req.query('group');
+    if (group !== undefined && group !== '' && !/^[A-Za-z0-9-]{1,40}$/.test(group)) {
+      return c.json(fail('Query parameter group must be a group name such as stations'), 400);
+    }
+    if (!isOrbitsFeed(g.feed)) return c.json(fail(`Layer ${layerId} has no elements`), 404);
+    const found = g.feed.elements(layerId, group === '' ? undefined : group);
+    if (!found) return c.json(fail(`Unknown group: ${group}`), 404);
+    const body: ElementsResponse = { layer: layerId, feed: g.feed.status(layerId), ...found };
     return c.json(body);
   });
 

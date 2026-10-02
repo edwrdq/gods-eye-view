@@ -7,9 +7,9 @@ import { FEED_DEFINITIONS, buildFeedManager, implementedLayers } from './registr
 import { clock, jsonResponse, manualTimers, obs } from './test-utils.ts';
 import { loadConfig } from '../config.ts';
 import { buildLayers } from '../layers.ts';
-import type { Feed } from './types.ts';
+import type { TrackedFeed } from './types.ts';
 
-function fakeFeed(id: string, layers: string[], events: string[]): Feed {
+function fakeFeed(id: string, layers: string[], events: string[]): TrackedFeed {
   return {
     id,
     freshnessMs: 1000,
@@ -36,10 +36,10 @@ test('manager starts and stops feeds; disabled definitions report off; resolve d
   });
   m.start();
   assert.deepEqual(events, ['start flights']);
-  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:live', 'military-flights:live', 'vessels:off']);
+  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:live', 'military-flights:live', 'vessels:off', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off']);
   assert.equal(m.resolve('flights').kind, 'ok');
   assert.equal(m.resolve('vessels').kind, 'off');
-  assert.equal(m.resolve('satellites').kind, 'unknown');
+  assert.equal(m.resolve('fires').kind, 'unknown');
   await m.stop();
   assert.deepEqual(events, ['start flights', 'stop flights']);
 });
@@ -83,7 +83,7 @@ test('registry builds feeds from FEEDS: default flights+vessels, unknown ignored
   const base = { db, fetch: async () => jsonResponse({ ac: [] }), now: c.now, timers: manualTimers, log: (s: string) => void logs.push(s) };
   const m = buildFeedManager({ ...base, config: loadConfig({ FEEDS: 'flights, vessels,bogus' }) });
   assert.ok(logs.some((l) => l.includes('unknown feed "bogus"')));
-  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:off', 'military-flights:off', 'vessels:needs-key']);
+  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:off', 'military-flights:off', 'vessels:needs-key', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off']);
   m.start();
   assert.equal(m.statuses().find((s) => s.layer === 'vessels')!.state, 'needs-key');
   assert.equal(m.statuses().find((s) => s.layer === 'flights')!.state, 'stale');
@@ -103,5 +103,9 @@ test('/api/config layer statuses reflect enabled feeds and keys', () => {
   assert.equal(status({}, ['flights', 'vessels'], 'vessels'), 'needs-key');
   assert.equal(status({ AISSTREAM_API_KEY: 'k' }, ['flights', 'vessels'], 'vessels'), 'available');
   assert.equal(status({ AISSTREAM_API_KEY: 'k' }, ['flights'], 'vessels'), 'disabled');
-  assert.equal(status({}, ['flights'], 'satellites'), 'planned');
+  assert.equal(status({}, ['flights'], 'satellites'), 'disabled');
+  assert.equal(status({}, ['flights', 'satellites', 'earthquakes'], 'satellites'), 'available');
+  assert.equal(status({}, ['flights', 'satellites', 'earthquakes'], 'cyclones'), 'disabled');
+  assert.equal(status({}, ['flights'], 'fires'), 'needs-key');
+  assert.equal(status({}, ['flights'], 'cctv'), 'planned');
 });

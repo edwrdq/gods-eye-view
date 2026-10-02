@@ -7,10 +7,10 @@
     small?: boolean;
     children: Snippet;
   }
-  let { label, small = false, children, ...rest }: Props = $props();
+  let { label, small = false, children, class: extra = '', ...rest }: Props = $props();
 </script>
 
-<button type="button" class="btn-icon" class:small aria-label={label} title={rest.title ?? label} {...rest}>
+<button type="button" class={['btn-icon', extra]} class:small aria-label={label} title={rest.title ?? label} {...rest}>
   {@render children()}
 </button>
 

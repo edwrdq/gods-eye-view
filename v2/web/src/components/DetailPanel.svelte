@@ -41,7 +41,7 @@
     let base = detail.sections;
     if (military && !base.some((s) => s.rows.some((r) => r.label.toLowerCase() === 'class'))) {
       const i = base.findIndex((s) => s.title.toLowerCase() !== 'position');
-      const row = { label: 'Class', value: 'Military aircraft', hint: 'flagged in ADS-B data' };
+      const row = { label: 'Class', value: 'Military aircraft', hint: 'ADS-B flag' };
       base = i >= 0 ? base.map((s, j) => (j === i ? { ...s, rows: [row, ...s.rows] } : s)) : [...base, { title: 'Aircraft', rows: [row] }];
     }
     if (base.some((s) => s.title.toLowerCase() === 'source')) return base;

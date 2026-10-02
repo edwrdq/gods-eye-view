@@ -29,12 +29,17 @@ export function markerCanvas(shape: MarkerShape, color: string, variant: MarkerV
     ctx.lineJoin = 'round';
     pathFor(ctx, shape);
     if (shape === 'ring' || variant === 'military') {
-      // Outline only: dark halo under and the hue on top, so it stays legible on any imagery.
+      // Outline: dark halo under and the hue on top, so it stays legible on any imagery.
       ctx.strokeStyle = MAP_HALO;
-      ctx.lineWidth = 7;
+      ctx.lineWidth = variant === 'military' ? 8 : 7;
       ctx.stroke();
+      if (variant === 'military') {
+        // Dark interior with a bright rim: reads as an outline, and stays visible when small.
+        ctx.fillStyle = MAP_HALO;
+        ctx.fill();
+      }
       ctx.strokeStyle = color;
-      ctx.lineWidth = 3.2;
+      ctx.lineWidth = variant === 'military' ? 4 : 3.2;
       ctx.stroke();
     } else {
       ctx.strokeStyle = MAP_HALO;
