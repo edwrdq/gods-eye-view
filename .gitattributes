@@ -18,3 +18,6 @@
 *.glb binary
 *.wav binary
 *.pbf binary
+
+# v2 test fixtures are upstream responses kept byte-for-byte (CelesTrak TLEs use CRLF).
+v2/server/src/feeds/**/fixtures/** -text

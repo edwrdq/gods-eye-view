@@ -256,11 +256,15 @@ export interface Feature {
   label?: string;
   /**
    * Compact props for styling/filtering. Vocabularies:
-   * - earthquakes: mag, depthKm, place, tsunami, alert ('green'|'yellow'|'orange'|'red'|null)
+   * - earthquakes: mag, depthKm, place, tsunami, alert ('green'|'yellow'|'orange'|'red'|null),
+   *   type ('earthquake', 'quarry blast', 'explosion', ...)
    * - cyclones: stormId, name, part ('track'|'forecast'|'cone'|'position'),
-   *   intensityKt, category, basin
-   * - launches: status ('upcoming'|'success'|'failure'|'partial'), vehicle,
-   *   provider, mission, part ('pad'|'trajectory'), net (epoch ms)
+   *   intensityKt, gustKt, category, basin, movementDir, movementKt; forecast
+   *   points are Point features with part 'forecast' and tauHours (the forecast
+   *   line is a LineString with the same part). Multi-part cones are split into
+   *   ids '<stormId>:cone', '<stormId>:cone:1', ...
+   * - launches: status ('upcoming'|'success'|'failure'|'partial'), statusName,
+   *   vehicle, provider, mission, part ('pad'), net (epoch ms)
    */
   props: Record<string, PropValue>;
 }
@@ -312,6 +316,8 @@ export interface OrbitalElements {
 
 /**
  * GET /api/layers/:id/elements?group=<g>
+ * Groups use CelesTrak names ('stations', 'gps-ops', 'glo-ops', ...); an
+ * unknown group is 404. Without `group`, all groups with duplicates removed.
  * Current element sets (refreshed server-side at most every few hours per
  * CelesTrak's guidance). The client propagates positions with SGP4.
  */
