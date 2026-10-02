@@ -6,6 +6,7 @@ type Spec = Omit<LayerDescriptor, 'status'>;
 const specs: Spec[] = [
   {
     id: 'flights',
+    kind: 'tracked',
     name: 'Flights',
     category: 'air',
     description: 'Live positions of aircraft that broadcast ADS-B, with altitude, speed and heading.',
@@ -13,6 +14,7 @@ const specs: Spec[] = [
   },
   {
     id: 'military-flights',
+    kind: 'tracked',
     name: 'Military flights',
     category: 'air',
     description: 'Aircraft flagged as military in public ADS-B data, shown apart from civil traffic.',
@@ -20,6 +22,7 @@ const specs: Spec[] = [
   },
   {
     id: 'vessels',
+    kind: 'tracked',
     name: 'Ships',
     category: 'sea',
     description: 'Live ship positions from AIS transponders, with vessel type, course and speed.',
@@ -28,6 +31,7 @@ const specs: Spec[] = [
   },
   {
     id: 'satellites',
+    kind: 'orbits',
     name: 'Satellites',
     category: 'space',
     description: 'Orbiting satellites computed from public orbital elements, grouped by purpose.',
@@ -35,6 +39,7 @@ const specs: Spec[] = [
   },
   {
     id: 'launches',
+    kind: 'features',
     name: 'Launches',
     category: 'space',
     description: 'Rocket launches from the last and next 30 days, with vehicle, payload and pad.',
@@ -42,6 +47,7 @@ const specs: Spec[] = [
   },
   {
     id: 'earthquakes',
+    kind: 'features',
     name: 'Earthquakes',
     category: 'hazards',
     description: 'Earthquakes from the last 24 hours, sized by magnitude.',
@@ -49,6 +55,7 @@ const specs: Spec[] = [
   },
   {
     id: 'fires',
+    kind: 'features',
     name: 'Active fires',
     category: 'hazards',
     description: 'Satellite fire detections from the last 24 hours.',
@@ -57,6 +64,7 @@ const specs: Spec[] = [
   },
   {
     id: 'weather',
+    kind: 'features',
     name: 'Observed weather',
     category: 'weather',
     description: 'Rain radar, satellite clouds and lightning density, with a timeline to step back through.',
@@ -64,6 +72,7 @@ const specs: Spec[] = [
   },
   {
     id: 'wind',
+    kind: 'features',
     name: 'Wind',
     category: 'weather',
     description: 'Animated forecast wind at 10 metres, with optional temperature or pressure shading.',
@@ -71,6 +80,7 @@ const specs: Spec[] = [
   },
   {
     id: 'cyclones',
+    kind: 'features',
     name: 'Cyclones',
     category: 'weather',
     description: 'Current tropical storm positions, forecast tracks and uncertainty cones.',
@@ -78,6 +88,7 @@ const specs: Spec[] = [
   },
   {
     id: 'submarine-cables',
+    kind: 'features',
     name: 'Submarine cables',
     category: 'infrastructure',
     description: 'Undersea internet cable routes and where they come ashore.',
@@ -85,6 +96,7 @@ const specs: Spec[] = [
   },
   {
     id: 'datacenters',
+    kind: 'features',
     name: 'Data centers',
     category: 'infrastructure',
     description: 'Data center buildings mapped by OpenStreetMap contributors.',
@@ -92,6 +104,7 @@ const specs: Spec[] = [
   },
   {
     id: 'installations',
+    kind: 'features',
     name: 'Mapped installations',
     category: 'infrastructure',
     description: 'Military sites mapped by OpenStreetMap contributors. Coverage is incomplete.',
@@ -99,6 +112,7 @@ const specs: Spec[] = [
   },
   {
     id: 'transit',
+    kind: 'features',
     name: 'Transit',
     category: 'ground',
     description: 'Live buses, trams, trains and ferries in cities that publish real-time vehicle feeds.',
@@ -106,6 +120,7 @@ const specs: Spec[] = [
   },
   {
     id: 'bikeshare',
+    kind: 'features',
     name: 'Bikeshare',
     category: 'ground',
     description: 'Bikeshare stations with the number of bikes and open docks right now.',
@@ -113,6 +128,7 @@ const specs: Spec[] = [
   },
   {
     id: 'traffic',
+    kind: 'features',
     name: 'Traffic',
     category: 'ground',
     description: 'Road congestion levels. Without a TomTom key, a simulation along mapped roads is shown.',
@@ -120,6 +136,7 @@ const specs: Spec[] = [
   },
   {
     id: 'alpr',
+    kind: 'features',
     name: 'Plate-reader cameras',
     category: 'ground',
     description: 'Locations of automatic license-plate readers mapped in OpenStreetMap. Locations only.',
@@ -127,6 +144,7 @@ const specs: Spec[] = [
   },
   {
     id: 'cctv',
+    kind: 'features',
     name: 'Public cameras',
     category: 'ground',
     description: 'Public traffic and city cameras published by transport agencies, placed on the map.',
@@ -134,6 +152,7 @@ const specs: Spec[] = [
   },
   {
     id: 'radio',
+    kind: 'features',
     name: 'Radio stations',
     category: 'signals',
     description: 'Broadcast radio stations placed at their location, playable in the browser.',

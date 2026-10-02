@@ -62,7 +62,16 @@ export interface LayerDescriptor {
   requiredKey?: string;
   /** Upstream data source(s), for attribution and freshness display. */
   sources: string[];
+  /**
+   * How the client gets and draws the layer:
+   * - 'tracked': moving objects via /snapshot, /objects, /track (flights, ships)
+   * - 'features': events and shapes via /features (earthquakes, cyclones, launches)
+   * - 'orbits': orbital elements via /elements, propagated client-side (satellites)
+   */
+  kind: LayerKind;
 }
+
+export type LayerKind = 'tracked' | 'features' | 'orbits';
 
 // ---------------------------------------------------------------- /api/geocode?q=
 // 400 ApiError for an empty or over-long query; 502 ApiError when every
@@ -226,6 +235,91 @@ export interface HistoryRange {
   to: number | null;
   /** How long history is kept, in ms. */
   retentionMs: number;
+}
+
+// ---------------------------------------------------------------- features layers
+
+/** GeoJSON geometry subset used by feature layers, coordinates [lon, lat(, alt m)]. */
+export type FeatureGeometry =
+  | { type: 'Point'; coordinates: [number, number] | [number, number, number] }
+  | { type: 'LineString'; coordinates: Array<[number, number] | [number, number, number]> }
+  | { type: 'MultiLineString'; coordinates: Array<Array<[number, number] | [number, number, number]>> }
+  | { type: 'Polygon'; coordinates: Array<Array<[number, number]>> };
+
+export interface Feature {
+  /** Stable id within the layer (USGS event id, storm id + part, launch id, ...). */
+  id: string;
+  geometry: FeatureGeometry;
+  /** Epoch ms the feature describes (event time, forecast time), when meaningful. */
+  t?: number;
+  /** Display label for the map, short. */
+  label?: string;
+  /**
+   * Compact props for styling/filtering. Vocabularies:
+   * - earthquakes: mag, depthKm, place, tsunami, alert ('green'|'yellow'|'orange'|'red'|null)
+   * - cyclones: stormId, name, part ('track'|'forecast'|'cone'|'position'),
+   *   intensityKt, category, basin
+   * - launches: status ('upcoming'|'success'|'failure'|'partial'), vehicle,
+   *   provider, mission, part ('pad'|'trajectory'), net (epoch ms)
+   */
+  props: Record<string, PropValue>;
+}
+
+/**
+ * GET /api/layers/:id/features?bbox=w,s,e,n&from=<ms>&to=<ms>
+ * Features intersecting bbox (world when omitted). `from`/`to` filter by
+ * Feature.t where the layer is time-based; defaults are layer-specific
+ * (earthquakes: last 24 h). With `to` in the past the response reflects what
+ * was known then where history allows. 404 unknown layer, 409 off/needs-key.
+ */
+export interface FeaturesResponse {
+  layer: string;
+  feed: FeedStatus;
+  features: Feature[];
+  truncated: boolean;
+}
+
+/**
+ * GET /api/layers/:id/features/:featureId
+ * Detail for one feature, rendered like ObjectDetail.
+ */
+export interface FeatureDetail {
+  layer: string;
+  featureId: string;
+  feature: Feature;
+  title: string;
+  subtitle: string | null;
+  sections: DetailSection[];
+  sources: string[];
+  /** Link to the authoritative source page (USGS event page, NHC advisory, ...). */
+  url?: string;
+}
+
+// ---------------------------------------------------------------- orbits layers
+
+export interface OrbitalElements {
+  /** NORAD catalog number as a string. */
+  noradId: string;
+  name: string;
+  /** Grouping for filtering: 'stations', 'starlink', 'gps', 'weather', ... */
+  group: string;
+  /** Two-line element set. */
+  tle1: string;
+  tle2: string;
+  /** Epoch ms of the element set. */
+  epoch: number;
+}
+
+/**
+ * GET /api/layers/:id/elements?group=<g>
+ * Current element sets (refreshed server-side at most every few hours per
+ * CelesTrak's guidance). The client propagates positions with SGP4.
+ */
+export interface ElementsResponse {
+  layer: string;
+  feed: FeedStatus;
+  groups: string[];
+  elements: OrbitalElements[];
 }
 
 export interface ApiError {
