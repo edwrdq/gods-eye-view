@@ -14,6 +14,8 @@ export interface FeaturesMessage {
   seq: number;
   feed: FeedStatus;
   truncated: boolean;
+  /** The server is still loading data this view needs: ask again soon. */
+  pending: boolean;
   /** Features in the server answer. */
   received: number;
   pack: FeaturePack;

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <exchange>
+        <supplierIdentification>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </supplierIdentification>
+    </exchange>
+    <payloadPublication xsi:type="TrafficViewPublication" lang="en" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <feedType>Traffic camera images</feedType>
+        <publicationTime>2026-10-02T20:00:12.356+03:00</publicationTime>
+        <publicationCreator>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </publicationCreator>
+        <headerInformation>
+            <confidentiality>noRestriction</confidentiality>
+            <informationStatus>real</informationStatus>
+        </headerInformation>
+        <trafficView id="987-1790959622000">
+            <trafficViewTime>2026-10-02T19:47:02.000+03:00</trafficViewTime>
+            <predefinedNonOrderedLocationGroupReference targetClass="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0"/>
+            <linearTrafficView id="987-1790959622000">
+                <linearPredefinedLocationReference targetClass="PredefinedLocation" id="a84734fc-8f1d-47af-ba22-8323cd6eb367" version="0"/>
+                <trafficViewRecord id="987-1790959622000-1">
+                    <recordSequenceNumber>1</recordSequenceNumber>
+                    <urlLink>
+                        <urlLinkAddress>https://tarktee.transpordiamet.ee/images/987/987_202610021947.jpg</urlLinkAddress>
+                        <urlLinkType>image</urlLinkType>
+                    </urlLink>
+                </trafficViewRecord>
+            </linearTrafficView>
+        </trafficView>
+<trafficView id="803-1790959674000">
+            <trafficViewTime>2026-10-02T19:47:54.000+03:00</trafficViewTime>
+            <predefinedNonOrderedLocationGroupReference targetClass="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0"/>
+            <linearTrafficView id="803-1790959674000">
+                <linearPredefinedLocationReference targetClass="PredefinedLocation" id="63b6d697-3070-45e7-aa38-95e3fd42a633" version="0"/>
+                <trafficViewRecord id="803-1790959674000-1">
+                    <recordSequenceNumber>1</recordSequenceNumber>
+                    <urlLink>
+                        <urlLinkAddress>https://tarktee.transpordiamet.ee/images/803/803_202610021947.jpg</urlLinkAddress>
+                        <urlLinkType>image</urlLinkType>
+                    </urlLink>
+                </trafficViewRecord>
+            </linearTrafficView>
+        </trafficView>
+<trafficView id="945-1790959612000">
+            <trafficViewTime>2026-10-02T19:46:52.000+03:00</trafficViewTime>
+            <predefinedNonOrderedLocationGroupReference targetClass="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0"/>
+            <linearTrafficView id="945-1790959612000">
+                <linearPredefinedLocationReference targetClass="PredefinedLocation" id="4493c56a-9fc9-464c-bc89-d506e0e3bab8" version="0"/>
+                <trafficViewRecord id="945-1790959612000-1">
+                    <recordSequenceNumber>1</recordSequenceNumber>
+                    <urlLink>
+                        <urlLinkAddress>https://tarktee.transpordiamet.ee/images/945/945_202610021946.jpg</urlLinkAddress>
+                        <urlLinkType>image</urlLinkType>
+                    </urlLink>
+                </trafficViewRecord>
+            </linearTrafficView>
+        </trafficView>
+<trafficView id="987-1790959622000">
+            <trafficViewTime>2026-10-02T19:47:02.000+03:00</trafficViewTime>
+            <predefinedNonOrderedLocationGroupReference targetClass="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0"/>
+            <linearTrafficView id="987-1790959622000">
+                <linearPredefinedLocationReference targetClass="PredefinedLocation" id="ffffffff-0000-0000-0000-000000000000" version="0"/>
+                <trafficViewRecord id="987-1790959622000-1">
+                    <recordSequenceNumber>1</recordSequenceNumber>
+                    <urlLink>
+                        <urlLinkAddress>https://evil.example/images/987/987_202610021947.jpg</urlLinkAddress>
+                        <urlLinkType>image</urlLinkType>
+                    </urlLink>
+                </trafficViewRecord>
+            </linearTrafficView>
+        </trafficView>
+</payloadPublication></d2LogicalModel>

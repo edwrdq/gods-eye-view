@@ -45,7 +45,7 @@ function parsePort(value: string | undefined): number {
 
 function parseFeeds(value: string | undefined): string[] {
   const raw = text(value);
-  if (raw === null) return ['flights', 'vessels', 'earthquakes', 'cyclones', 'launches', 'satellites', 'cables', 'datacenters', 'installations', 'bikeshare', 'radio'];
+  if (raw === null) return ['flights', 'vessels', 'earthquakes', 'cyclones', 'launches', 'satellites', 'cables', 'datacenters', 'installations', 'bikeshare', 'radio', 'cctv'];
   return [...new Set(raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))];
 }
 

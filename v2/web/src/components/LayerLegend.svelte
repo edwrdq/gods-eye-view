@@ -28,7 +28,7 @@
   ];
   // Star outline on a 40 grid (same points the map marker uses).
   const STAR = '20,4 24.5,15.5 36,20 24.5,24.5 20,36 15.5,24.5 4,20 15.5,15.5';
-  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites', 'submarine-cables', 'datacenters', 'installations', 'bikeshare', 'radio'].includes(layer.id));
+  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites', 'submarine-cables', 'datacenters', 'installations', 'bikeshare', 'radio', 'cctv'].includes(layer.id));
   // Hexagon outline on the 40 grid, the same points the map marker uses; the gauge fills from y = 31 upwards over 22 units.
   const HEX = shapePoints('hexagon')!.join(' ');
   const levels = [
@@ -110,6 +110,16 @@
             <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex rim dashed" /></svg>No reading</span>
           </div>
           <p class="note">Filled share is bikes over docks. Counts are as the operator last reported them.</p>
+        {:else if layer.id === 'cctv'}
+          <div class="row"><span class="h">Direction</span>
+            <span class="item"><svg width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 20 L30 2 A21 21 0 0 0 10 2 Z" class="cam-wedge" /><polygon points={HEX} class="hex cam-solid" /></svg>Known</span>
+            <span class="item"><svg width="26" height="26" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex body" /><polygon points={HEX} class="hex rim dashed" /></svg>Estimated, no wedge</span>
+          </div>
+          <div class="row"><span class="h">Kind</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex cam-solid" /></svg>Still picture</span>
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><polygon points={HEX} class="hex cam-solid" /><path d="M17 14 L27 20 L17 26 Z" class="eye" /></svg>Live video only</span>
+          </div>
+          <p class="note">The wedge points the way the camera faces. A dashed hollow marker means the source gives no direction, so none is drawn; the details explain.</p>
         {:else if layer.id === 'radio'}
           <div class="row">
             <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="12" class="ring" /><circle cx="20" cy="20" r="4.5" class="ring-dot" /></svg>Plays here</span>
@@ -293,6 +303,17 @@
     stroke-width: 3;
     stroke-linecap: round;
     opacity: 0.7;
+  }
+  .cam-solid {
+    fill: var(--map-ground);
+    stroke: var(--map-halo);
+    stroke-width: 2;
+  }
+  .cam-wedge {
+    fill: var(--map-ground);
+    fill-opacity: 0.5;
+    stroke: var(--map-ground);
+    stroke-width: 2;
   }
   .ring {
     fill: none;

@@ -99,6 +99,8 @@ export function layerNoun(layerId: string, count: number): string {
       return count === 1 ? 'bike station' : 'bike stations';
     case 'radio':
       return count === 1 ? 'radio station' : 'radio stations';
+    case 'cctv':
+      return count === 1 ? 'camera' : 'cameras';
     default:
       return count === 1 ? 'object' : 'objects';
   }

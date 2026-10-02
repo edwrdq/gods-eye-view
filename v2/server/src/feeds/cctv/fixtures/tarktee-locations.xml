@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<d2LogicalModel modelBaseVersion="2" xmlns="http://datex2.eu/schema/2/2_0">
+    <exchange>
+        <supplierIdentification>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </supplierIdentification>
+    </exchange>
+    <payloadPublication xsi:type="PredefinedLocationsPublication" lang="en" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <feedType>Traffic camera locations</feedType>
+        <publicationTime>2026-10-02T20:00:13.909+03:00</publicationTime>
+        <publicationCreator>
+            <country>ee</country>
+            <nationalIdentifier>MNT</nationalIdentifier>
+        </publicationCreator>
+        <headerInformation>
+            <confidentiality>noRestriction</confidentiality>
+            <informationStatus>real</informationStatus>
+        </headerInformation>
+        <predefinedLocationContainer xsi:type="PredefinedNonOrderedLocationGroup" id="TRAFFIC_CAMERAS" version="0">
+<predefinedLocation id="a84734fc-8f1d-47af-ba22-8323cd6eb367" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Kaimi</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>58.34474</latitude>
+                            <longitude>26.3853</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+<predefinedLocation id="63b6d697-3070-45e7-aa38-95e3fd42a633" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Kolgaküla</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.52601</latitude>
+                            <longitude>25.69951</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+<predefinedLocation id="4493c56a-9fc9-464c-bc89-d506e0e3bab8" version="0">
+                <predefinedLocationName>
+                    <values>
+                        <value lang="et">Konju</value>
+                    </values>
+                </predefinedLocationName>
+                <location xsi:type="Point">
+                    <pointByCoordinates>
+                        <pointCoordinates>
+                            <latitude>59.39085</latitude>
+                            <longitude>27.5901</longitude>
+                        </pointCoordinates>
+                    </pointByCoordinates>
+                </location>
+            </predefinedLocation>
+</predefinedLocationContainer>
+</payloadPublication></d2LogicalModel>

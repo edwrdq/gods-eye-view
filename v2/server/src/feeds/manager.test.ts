@@ -36,7 +36,7 @@ test('manager starts and stops feeds; disabled definitions report off; resolve d
   });
   m.start();
   assert.deepEqual(events, ['start flights']);
-  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:live', 'military-flights:live', 'vessels:off', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off', 'submarine-cables:off', 'datacenters:off', 'installations:off', 'bikeshare:off', 'radio:off']);
+  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:live', 'military-flights:live', 'vessels:off', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off', 'submarine-cables:off', 'datacenters:off', 'installations:off', 'bikeshare:off', 'radio:off', 'cctv:off']);
   assert.equal(m.resolve('flights').kind, 'ok');
   assert.equal(m.resolve('vessels').kind, 'off');
   assert.equal(m.resolve('fires').kind, 'unknown');
@@ -83,7 +83,7 @@ test('registry builds feeds from FEEDS: default flights+vessels, unknown ignored
   const base = { db, fetch: async () => jsonResponse({ ac: [] }), now: c.now, timers: manualTimers, log: (s: string) => void logs.push(s) };
   const m = buildFeedManager({ ...base, config: loadConfig({ FEEDS: 'flights, vessels,bogus' }) });
   assert.ok(logs.some((l) => l.includes('unknown feed "bogus"')));
-  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:off', 'military-flights:off', 'vessels:needs-key', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off', 'submarine-cables:off', 'datacenters:off', 'installations:off', 'bikeshare:off', 'radio:off']);
+  assert.deepEqual(m.statuses().map((s) => `${s.layer}:${s.state}`), ['flights:off', 'military-flights:off', 'vessels:needs-key', 'earthquakes:off', 'cyclones:off', 'launches:off', 'satellites:off', 'submarine-cables:off', 'datacenters:off', 'installations:off', 'bikeshare:off', 'radio:off', 'cctv:off']);
   m.start();
   assert.equal(m.statuses().find((s) => s.layer === 'vessels')!.state, 'needs-key');
   assert.equal(m.statuses().find((s) => s.layer === 'flights')!.state, 'stale');
@@ -107,5 +107,5 @@ test('/api/config layer statuses reflect enabled feeds and keys', () => {
   assert.equal(status({}, ['flights', 'satellites', 'earthquakes'], 'satellites'), 'available');
   assert.equal(status({}, ['flights', 'satellites', 'earthquakes'], 'cyclones'), 'disabled');
   assert.equal(status({}, ['flights'], 'fires'), 'needs-key');
-  assert.equal(status({}, ['flights'], 'cctv'), 'planned');
+  assert.equal(status({}, ['flights'], 'transit'), 'planned');
 });

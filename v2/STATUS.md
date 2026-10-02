@@ -63,6 +63,16 @@ at the end of each work session.
 - Radio: Radio Browser (server found by DNS lookup of all.api.radio-browser.info as its docs ask, then the HTTP list, then built-in names). About 12,900 geo-located stations fetched in pages, cached on disk, refreshed every 6 h. World zoom thinned to 1,500 with `thinGrid`.
 - `FeaturesFeed.features` may now return a promise (bikeshare waits for its operators, up to 9 s per view).
 
+## Public cameras (2026-10-02)
+
+- Layer `cctv` ("Public cameras"), ground category. Sources (`server/src/feeds/cctv/sources/`): City of Austin (Socrata), TxDOT (25 districts), Caltrans (12 districts), Transport for London JamCams, Live Traffic NSW, City of Calgary, DriveBC, Fintraffic/Digitraffic (Finland), Estonian Transpordiamet (DATEX II), City of Tallinn (bundled list, `static-data/cctv/tallinn.json`), Stadt Warendorf (one webcam), DelDOT (live video only: HLS link, plays natively where the browser can). Not ported: Ontario 511 (its API now answers "Invalid Key"; the original used it keyless).
+- Nothing is fetched until a view needs it: a view loads only the sources whose coverage it overlaps, waits up to 8 s (2.5 s for wide views) for ones with no list yet, and answers `pending: true` (optional field of `FeaturesResponse`) while others are still loading, so the client asks again after 4 s. Lists are cached per source under `DATA_DIR/cache/cctv/` and refreshed stale-while-revalidate when a view needs them (12-24 h TTL; Tarktee's picture addresses, which hold the capture time, are looked up again every 10 min while a Tarktee camera is open). A failing source backs off 1-30 min and keeps its last list; a failed Caltrans/TxDOT district keeps its old cameras.
+- Pictures go through `GET /api/layers/cctv/features/:id/image` (the original proxied too). Per camera the server pulls at most once per refresh interval (source default 60 s; Caltrans uses the list's own interval, DriveBC `update_period_mean` clamped 2-30 min; Fintraffic 10 min; Tarktee 10 min; floor 30 s), uses conditional requests, keeps pictures in memory only (24 MB, LRU), serves the last picture marked stale for up to 15 min when the source fails, and backs off 30 s to 5 min. It fetches only addresses registered by a camera list, on the hosts the source names, over same-origin redirects; 6 requests at once, 2 per host. The browser asks only while a camera panel is open and the tab visible.
+- Headings follow the original's #639/#643 work: `known` (published field, a travel word in the name, or curated by hand) or `estimated` (placeholder bearing from the camera id). The map draws a wedge only for known headings. TfL's free-text `view` field and Calgary's address-grid quadrant are deliberately not read as headings.
+- HLS: hls.js is not in v2. Only DelDOT is video-only; it plays in Safari-class browsers and is an "Open stream" link elsewhere. Caltrans and TfL also publish video, which is not used (stills first, as in the original).
+- Measured (headless Chromium, software WebGL, this sandbox, Austin view at 22 km): toggle to first markers 1.85 s with no cache at all (Austin list 0.86 s, TxDOT's 25 districts 2.0 s in the background), 0.7 s after a server restart (lists from disk), 0.5-0.7 s switching the layer off and on. The original's CCTV city activation was 19.6 s (docs/PERFORMANCE.md).
+- Detail panel icon is now per layer (`web/src/lib/layerIcons.ts`); bikeshare no longer shows a camera.
+
 ## Still unverified
 
 - Google Photorealistic 3D with a direct `GOOGLE_MAPS_API_KEY` (none was set in
@@ -83,7 +93,7 @@ recorded state everywhere, even thinning over the snapshot cap.
 
 1. Verify Google Photorealistic 3D with a direct `GOOGLE_MAPS_API_KEY`.
 2. Remaining layers: fires (FIRMS key), weather/wind, transit, traffic, ALPR,
-   CCTV, SDR.
+   SDR.
 3. Research features from PLAN.md: area watch, saved searches, export
    (CSV/GeoJSON), earthquake backfill on first run.
 4. Settle history defaults with the owner (HISTORY_DAYS, store intervals);

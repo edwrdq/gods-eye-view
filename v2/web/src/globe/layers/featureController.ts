@@ -22,12 +22,12 @@ interface Runtime {
   ref: number;
   /** Area the last request asked for (static layers: null means the whole world). */
   asked: BBox | null;
-  /** Bikeshare: most stations came without a reading (an operator was still loading), so ask again soon. */
+  /** Bikeshare: most stations came without a reading, or cctv: a camera list was still loading, so ask again soon. */
   catchUp: boolean;
 }
 
-/** How soon a bikeshare view that came back without readings asks again. */
-const CATCH_UP_MS = 8_000;
+/** How soon a view that came back partial (bikeshare readings, camera lists still loading) asks again. */
+const CATCH_UP_MS = 4_000;
 
 /** True when most points of a bikeshare pack have no status yet (the server answered before the operator's status feed did). */
 function mostlyUnread(pack: import('../../lib/geometryPack.ts').FeaturePack): boolean {
@@ -205,7 +205,7 @@ export class FeatureController implements LayerController {
     // Cables are drawn as several parts each; count the cables, not the parts.
     const lines = m.layer === 'submarine-cables' ? new Set(splitIds(m.pack.lines.ids)).size : m.pack.lines.count;
     const drawn = m.pack.points.count + lines + m.pack.polys.count;
-    rt.catchUp = m.layer === 'bikeshare' && mostlyUnread(m.pack);
+    rt.catchUp = (m.layer === 'bikeshare' && mostlyUnread(m.pack)) || m.pending;
     rt.state = {
       phase: 'ready',
       hasData: true,

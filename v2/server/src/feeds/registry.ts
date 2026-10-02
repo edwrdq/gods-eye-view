@@ -3,6 +3,7 @@ import type { Db } from '../db/index.ts';
 import path from 'node:path';
 import { BikeshareFeed, BIKESHARE_FRESHNESS_MS } from './bikeshare/feed.ts';
 import { RadioFeed, RADIO_FRESHNESS_MS } from './radio/feed.ts';
+import { CctvFeed, CCTV_FRESHNESS_MS } from './cctv/feed.ts';
 import { CablesFeed } from './cables/feed.ts';
 import { DatacentersFeed } from './datacenters/feed.ts';
 import { InstallationsFeed } from './installations/feed.ts';
@@ -31,6 +32,7 @@ export const FEED_DEFINITIONS: FeedDefinition[] = [
   { id: 'installations', layers: ['installations'], freshnessMs: STATIC_FRESHNESS_MS },
   { id: 'bikeshare', layers: ['bikeshare'], freshnessMs: BIKESHARE_FRESHNESS_MS },
   { id: 'radio', layers: ['radio'], freshnessMs: RADIO_FRESHNESS_MS },
+  { id: 'cctv', layers: ['cctv'], freshnessMs: CCTV_FRESHNESS_MS },
 ];
 
 /** Layer ids with a working server implementation (used for /api/config statuses). */
@@ -153,6 +155,8 @@ export function buildFeedManager(deps: BuildFeedsDeps): FeedManager {
       feeds.push(new BikeshareFeed({ fetch: fetchFn, cacheFile: path.join(deps.config.dataDir, 'cache', 'bikeshare-systems.json'), now: deps.now, timers: deps.timers, log }));
     } else if (id === 'radio') {
       feeds.push(new RadioFeed({ fetch: fetchFn, cacheFile: path.join(deps.config.dataDir, 'cache', 'radio-stations.json'), now: deps.now, timers: deps.timers, log }));
+    } else if (id === 'cctv') {
+      feeds.push(new CctvFeed({ fetch: fetchFn, cacheDir: path.join(deps.config.dataDir, 'cache', 'cctv'), now: deps.now, timers: deps.timers, log }));
     } else if (id === 'cables' || id === 'datacenters' || id === 'installations') {
       const opts = { now: deps.now, log };
       feeds.push(id === 'cables' ? new CablesFeed(opts) : id === 'datacenters' ? new DatacentersFeed(opts) : new InstallationsFeed(opts));

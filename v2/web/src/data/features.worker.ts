@@ -19,7 +19,7 @@ async function run(layer: string, seq: number, from: number | undefined, to: num
     const pack = packFeatures(layer, res.features);
     const packMs = performance.now() - t1;
     scope.postMessage(
-      { type: 'features', layer, seq, feed: res.feed, truncated: res.truncated, received: res.features.length, pack, fetchMs: t1 - t0, packMs },
+      { type: 'features', layer, seq, feed: res.feed, truncated: res.truncated, pending: res.pending === true, received: res.features.length, pack, fetchMs: t1 - t0, packMs },
       packTransfer(pack),
     );
   } catch (e) {

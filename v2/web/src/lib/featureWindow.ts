@@ -5,6 +5,11 @@ const DAY = 86_400_000;
 /** Layers that only know the present: cyclones and launches show current data in history mode. */
 const LIVE_ONLY: ReadonlySet<string> = new Set(['cyclones', 'launches', 'bikeshare']);
 
+/** Layers whose map shows a directory of places, with pictures that are only ever live (cameras). */
+export function hasLivePictures(layerId: string): boolean {
+  return layerId === 'cctv';
+}
+
 export function isLiveOnly(layerId: string): boolean {
   return LIVE_ONLY.has(layerId);
 }
@@ -15,7 +20,7 @@ export function isLiveOnly(layerId: string): boolean {
  * snapshots, not feeds: nothing is recorded, time does not apply, and they are
  * fetched for the viewed area instead of polled.
  */
-const STATIC: ReadonlySet<string> = new Set(['submarine-cables', 'datacenters', 'installations', 'radio']);
+const STATIC: ReadonlySet<string> = new Set(['submarine-cables', 'datacenters', 'installations', 'radio', 'cctv']);
 
 export function isStatic(layerId: string): boolean {
   return STATIC.has(layerId);
@@ -65,4 +70,5 @@ export function windowLabel(layerId: string): string | null {
 }
 
 export const HISTORY_NOTE_STATIC = 'Same at any time';
+export const HISTORY_NOTE_PICTURES = 'Pictures are live only';
 export const HISTORY_NOTE_LIVE_ONLY = 'Not recorded for past times';

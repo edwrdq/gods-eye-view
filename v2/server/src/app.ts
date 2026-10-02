@@ -24,7 +24,7 @@ import { GeocodeUnavailableError, type Geocoder } from './geocode.ts';
 import { parseBBox } from './geo.ts';
 import { layerKinds } from './layers.ts';
 import { thinToCap } from './feeds/thin.ts';
-import { isFeaturesFeed, isOrbitsFeed, type Feed, type FeedLayer, type TrackedFeed } from './feeds/types.ts';
+import { isFeaturesFeed, isImageFeed, isOrbitsFeed, type Feed, type FeedLayer, type TrackedFeed } from './feeds/types.ts';
 
 export interface AppDeps {
   /** Browser-safe config served verbatim at /api/config. */
@@ -250,8 +250,8 @@ export function createApp(deps: AppDeps): Hono {
     if (from !== undefined && to !== undefined && from > to) return c.json(fail('Query parameter from must not be after to'), 400);
     if (!isFeaturesFeed(g.feed)) return c.json(fail(`Layer ${layerId} has no features`), 404);
 
-    const { features, truncated } = await g.feed.features(layerId, { bbox, from, to, limit: maxFeatures });
-    const body: FeaturesResponse = { layer: layerId, feed: g.feed.status(layerId), features, truncated };
+    const { features, truncated, pending } = await g.feed.features(layerId, { bbox, from, to, limit: maxFeatures });
+    const body: FeaturesResponse = { layer: layerId, feed: g.feed.status(layerId), features, truncated, ...(pending ? { pending: true } : {}) };
     return c.json(body);
   });
 
@@ -264,6 +264,42 @@ export function createApp(deps: AppDeps): Hono {
     const body: FeatureDetail | null = await g.feed.featureDetail(layerId, featureId);
     if (!body) return c.json(fail('Feature not found'), 404);
     return c.json(body);
+  });
+
+  /**
+   * GET /api/layers/:id/features/:featureId/image: the live picture of a feature that has one
+   * (cctv). Headers: X-Frame-Time (epoch ms the picture was taken), X-Refresh-After (seconds
+   * until a new picture is worth asking for), X-Frame-Source (upstream, cache or stale).
+   * 404 unknown feature or no picture, 502/504 when the camera's source failed (Retry-After).
+   */
+  app.get('/api/layers/:id/features/:featureId/image', async (c) => {
+    const layerId = c.req.param('id');
+    const featureId = c.req.param('featureId');
+    const g = gate(layerId, 'features');
+    if (!g.ok) return c.json(fail(g.message), g.status);
+    if (!validObjectId(featureId) || !isImageFeed(g.feed)) return c.json(fail('Feature not found'), 404);
+    const r = await g.feed.image(layerId, featureId);
+    if (!r) return c.json(fail('Feature not found'), 404);
+    if (r.kind === 'none') return c.json(fail(r.message), 404);
+    if (r.kind === 'error') {
+      if (r.retryAfterS !== null) c.header('Retry-After', String(r.retryAfterS));
+      c.header('Cache-Control', 'no-store');
+      return c.json(fail(r.message), r.status);
+    }
+    const im = r.image;
+    return new Response(im.body, {
+      status: 200,
+      headers: {
+        'Content-Type': im.contentType,
+        'Content-Length': String(im.body.length),
+        'Cache-Control': 'no-store',
+        'X-Frame-Time': String(im.frameTime),
+        'X-Refresh-After': String(im.nextInS),
+        'X-Frame-Source': im.origin,
+        'X-Content-Type-Options': 'nosniff',
+        'Access-Control-Expose-Headers': 'X-Frame-Time, X-Refresh-After, X-Frame-Source',
+      },
+    });
   });
 
   app.get('/api/layers/:id/elements', (c) => {

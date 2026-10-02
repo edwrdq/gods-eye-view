@@ -24,7 +24,7 @@
   {/if}
   {#if dataCredits.length > 0}
     <ul class="data">
-      {#each dataCredits as d (d.layer)}
+      {#each dataCredits as d (d.layer + d.text)}
         <li><strong>{d.lead}:</strong> {d.text} <a href={d.link.href} target="_blank" rel="noopener noreferrer">{d.link.label}</a> ({d.licence})</li>
       {/each}
     </ul>

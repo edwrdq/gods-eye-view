@@ -3,7 +3,8 @@ import { cycloneLabel, cycloneSize, FORECAST_POINT_PX, LAUNCH_PX, launchEta, lau
 import { NO_CODE, splitIds, type FeaturePack } from '../../lib/geometryPack.ts';
 import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, markerVariantFor } from '../../lib/markerStyle.ts';
 import { quakeStyle } from '../../lib/quakeStyle.ts';
-import { bikeCanvas, launchCanvas, markerCanvas, quakeCanvas, radioCanvas, stormCanvas } from './markers.ts';
+import { bikeCanvas, cameraBodyCanvas, cameraWedgeCanvas, launchCanvas, markerCanvas, quakeCanvas, radioCanvas, stormCanvas } from './markers.ts';
+import { bodyKey, CAMERA_PX, cameraForm, cameraLabel, WEDGE_MAX_ALTITUDE_M, WEDGE_PX, WEDGE_SPREAD_DEG, wedgeKey, type CameraForm } from '../../lib/cameraStyle.ts';
 import { bikeForm, bikeKey, bikePx, radioKey, radioPx, stationLabel } from '../../lib/stationStyle.ts';
 import { LabelPool } from './labelPool.ts';
 import { PICK_SEP } from './pointLayer.ts';
@@ -15,6 +16,7 @@ type Billboard = import('cesium').Billboard;
 type Cartesian3 = import('cesium').Cartesian3;
 
 const MARKER_SCALE = 0.5;
+const DEG2RAD = Math.PI / 180;
 const LABEL_CAP = 60;
 /** Labels of ordinary points appear below this camera height. */
 const LABEL_MAX_ALTITUDE_M = 3_000_000;
@@ -28,6 +30,8 @@ interface PointStyle {
   label: string;
   /** Label even when zoomed out (storm centres: identity, not clutter). */
   alwaysLabel: boolean;
+  /** Cameras: the view wedge under the marker, rotated to the heading. */
+  camera?: { form: CameraForm; heading: number };
 }
 
 interface Entry {
@@ -37,6 +41,9 @@ interface Entry {
   label: string;
   alwaysLabel: boolean;
   key: string;
+  /** Cameras: the wedge billboard and the image key it shows. */
+  wedge?: Billboard;
+  wedgeKey?: string;
 }
 
 const truncate = (t: string, max: number): string => (t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t);
@@ -62,6 +69,8 @@ export class FeatureLayer {
   private readonly scene: Scene;
   private readonly billboards: import('cesium').BillboardCollection;
   private readonly polylines: import('cesium').PolylineCollection;
+  /** Cameras only: view wedges, drawn under every marker. */
+  private readonly wedges: import('cesium').BillboardCollection | null;
   private readonly labelPool: LabelPool;
   private polygons: import('cesium').Primitive | null = null;
   private readonly entries = new Map<string, Entry>();
@@ -83,6 +92,7 @@ export class FeatureLayer {
     this.color = CATEGORY_MAP_COLOR[category];
     // Polygons first so lines and markers draw over them.
     this.polylines = scene.primitives.add(new Cesium.PolylineCollection());
+    this.wedges = layer === 'cctv' ? scene.primitives.add(new Cesium.BillboardCollection({ scene, blendOption: Cesium.BlendOption.TRANSLUCENT })) : null;
     this.billboards = scene.primitives.add(new Cesium.BillboardCollection({ scene, blendOption: Cesium.BlendOption.TRANSLUCENT }));
     this.labelPool = new LabelPool(Cesium, scene, layer);
     this.scaleByDistance = new Cesium.NearFarScalar(3e5, 1, 1.6e7, 0.6);
@@ -138,6 +148,13 @@ export class FeatureLayer {
         const audio = code0 === 'audio';
         const key = radioKey(px, audio, color);
         return { key, canvas: () => radioCanvas(key, px, audio, color), px, label: stationLabel(label), alwaysLabel: false };
+      }
+      case 'cctv': {
+        // heading numeric; headingConfidence and type coded. A camera always has a heading: when the source
+        // gives none it is a placeholder and the confidence says 'estimated'.
+        const form = cameraForm(code0, code1);
+        const key = bodyKey(form, color);
+        return { key, canvas: () => cameraBodyCanvas(key, form, CAMERA_PX, color), px: CAMERA_PX, label: cameraLabel(label), alwaysLabel: false, camera: { form, heading: num0 } };
       }
       default: {
         const shape = CATEGORY_SHAPE[this.category];
@@ -207,6 +224,7 @@ export class FeatureLayer {
         e.billboard.setImage(st.key, st.canvas());
         e.key = st.key;
       }
+      if (st.camera && this.wedges) this.applyWedge(e, st.camera, i, p.xyz);
       e.px = st.px;
       e.label = st.label;
       e.alwaysLabel = st.alwaysLabel;
@@ -223,11 +241,43 @@ export class FeatureLayer {
     for (const [id, e] of this.entries) {
       if (seen.has(id)) continue;
       this.billboards.remove(e.billboard);
+      if (e.wedge) this.wedges?.remove(e.wedge);
       this.entries.delete(id);
       if (this.pinned === id) this.pinned = null;
       written++;
     }
     return written;
+  }
+
+  /** Keep the wedge under a camera marker with a known facing at its position, pointing along its heading (rotation is about the camera's up axis, so north stays north whatever the view). */
+  private applyWedge(e: Entry, cam: { form: CameraForm; heading: number }, i: number, xyz: Float64Array): void {
+    const C = this.C;
+    const wc = this.wedges!;
+    // An estimated facing is a placeholder: drawing it as a wedge would show a direction nobody measured, and most
+    // cameras of a source without one would fill the map with them. Only a known facing gets a wedge.
+    if (cam.form.confidence !== 'known') {
+      if (e.wedge) {
+        wc.remove(e.wedge);
+        e.wedge = undefined;
+        e.wedgeKey = undefined;
+      }
+      return;
+    }
+    if (!e.wedge) {
+      e.wedge = wc.add({ position: C.Cartesian3.ZERO, scale: MARKER_SCALE, scaleByDistance: this.scaleByDistance, eyeOffset: this.eyeOffset, alignedAxis: C.Cartesian3.UNIT_Z });
+      e.wedge.id = e.billboard.id; // a click on the wedge selects its camera
+    }
+    const k = wedgeKey(this.color);
+    if (e.wedgeKey !== k) {
+      e.wedge.setImage(k, cameraWedgeCanvas(k, WEDGE_PX, WEDGE_SPREAD_DEG, this.color));
+      e.wedgeKey = k;
+    }
+    const x = xyz[3 * i]!;
+    const y = xyz[3 * i + 1]!;
+    const z = xyz[3 * i + 2]!;
+    const pos = e.wedge.position;
+    if (pos.x !== x || pos.y !== y || pos.z !== z) e.wedge.position = new C.Cartesian3(x, y, z);
+    e.wedge.rotation = Number.isFinite(cam.heading) ? -cam.heading * DEG2RAD : 0;
   }
 
   private applyLines(pack: FeaturePack): number {
@@ -328,6 +378,8 @@ export class FeatureLayer {
    * look-at point in Earth-fixed metres, null when none.
    */
   updateLabels(center: Cartesian3 | null, altitude: number, occupied: Rect[]): void {
+    // From high up a direction is noise: cameras are plain dots until the view is regional.
+    if (this.wedges) this.wedges.show = altitude < WEDGE_MAX_ALTITUDE_M;
     const chosen: Entry[] = [];
     const zoomed = center !== null && altitude < LABEL_MAX_ALTITUDE_M;
     // Several features can share one spot (launches from the same pad): label only the one drawn on top.
@@ -373,6 +425,7 @@ export class FeatureLayer {
   }
 
   destroy(): void {
+    if (this.wedges) this.scene.primitives.remove(this.wedges);
     this.scene.primitives.remove(this.billboards);
     this.scene.primitives.remove(this.polylines);
     this.labelPool.destroy();

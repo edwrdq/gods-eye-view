@@ -5,7 +5,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import StatusChip from './StatusChip.svelte';
   import { effectiveState } from '../lib/cadence.ts';
-  import { HISTORY_NOTE_LIVE_ONLY, HISTORY_NOTE_STATIC, isStatic } from '../lib/featureWindow.ts';
+  import { hasLivePictures, HISTORY_NOTE_LIVE_ONLY, HISTORY_NOTE_PICTURES, HISTORY_NOTE_STATIC, isStatic } from '../lib/featureWindow.ts';
   import { capNote, layerSummary, viewNote } from '../lib/layerSummary.ts';
   import { layerChip } from '../lib/viewState.ts';
   import { isRendered, layerNoun } from '../lib/layers.ts';
@@ -41,7 +41,7 @@
   const elementsAge = $derived(age);
   const viewing = $derived(timeState.at !== null);
   const chip = $derived(
-    layerChip({ kind: layer.kind, viewing, drawnHistorical: run?.historical === true, currentOnly: run?.currentOnly === true, snapshot: isStatic(layer.id), health, hasData: run?.hasData === true }),
+    layerChip({ kind: layer.kind, viewing, drawnHistorical: run?.historical === true, currentOnly: run?.currentOnly === true, snapshot: isStatic(layer.id) && !hasLivePictures(layer.id), health, hasData: run?.hasData === true }),
   );
 </script>
 
@@ -76,8 +76,8 @@
       {/if}
       <span class="num">{summary}</span>
       {#if layer.kind === 'orbits' && elementsAge && !viewing}<span class="note">Elements updated {age}</span>{/if}
-      {#if run.currentOnly}<span class="note">{isStatic(layer.id) ? HISTORY_NOTE_STATIC : HISTORY_NOTE_LIVE_ONLY}</span>{/if}
-      {#if !run.currentOnly && isStatic(layer.id) && age}<span class="note">Data from {age}</span>{/if}
+      {#if run.currentOnly}<span class="note">{hasLivePictures(layer.id) ? HISTORY_NOTE_PICTURES : isStatic(layer.id) ? HISTORY_NOTE_STATIC : HISTORY_NOTE_LIVE_ONLY}</span>{/if}
+      {#if !run.currentOnly && isStatic(layer.id) && !hasLivePictures(layer.id) && age}<span class="note">Data from {age}</span>{/if}
       {#if layer.kind === 'orbits' && viewing && timeState.at !== null}<span class="note">Positions predicted for <span class="mono">{formatClockUtc(timeState.at)}</span></span>{/if}
       {#if run.truncated}<span class="note">{viewNote(layer.id, run.drawn, true) ?? capNote(run.drawn, run.total)}</span>{/if}
     </div>

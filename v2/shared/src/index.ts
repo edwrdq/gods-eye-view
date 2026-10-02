@@ -271,6 +271,11 @@ export interface Feature {
    *   ids '<stormId>:cone', '<stormId>:cone:1', ...
    * - launches: status ('upcoming'|'success'|'failure'|'partial'), statusName,
    *   vehicle, provider, mission, part ('pad'), net (epoch ms)
+   * - cctv: name, source (agency), city, type ('still'|'video'), heading (degrees
+   *   clockwise from north, always present), headingConfidence ('known'|'estimated');
+   *   the detail adds headingBasis ('published'|'name'|'curated'|'placeholder'), imageUrl
+   *   (this server's picture path, stills only), refreshS, imageTime (epoch ms),
+   *   streamUrl (the agency's HLS playlist, video cameras only), credit
    */
   props: Record<string, PropValue>;
 }
@@ -287,6 +292,12 @@ export interface FeaturesResponse {
   feed: FeedStatus;
   features: Feature[];
   truncated: boolean;
+  /**
+   * Optional (absent means false). True when the server is still loading data this view
+   * needs (cctv: a source's camera list on its first use), so the answer is partial. Ask again
+   * in a few seconds.
+   */
+  pending?: boolean;
 }
 
 /**

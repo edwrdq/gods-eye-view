@@ -1,0 +1,159 @@
+{
+ "cctvStatusRoadways": [
+  "FM-734",
+  "IH-35"
+ ],
+ "roadwayCctvStatuses": {
+  "A": [
+   {
+    "dirDescription": "North",
+    "displayOrder": 0,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ US-290 EB",
+    "latitude": 30.34396,
+    "latString": "30.34396",
+    "longitude": -97.57987999999999,
+    "lonString": "-97.57987999999999",
+    "name": "FM-734 @ US-290 EB",
+    "netId": "AUS",
+    "roadwayOrder": 1,
+    "statusDescription": "Device Online"
+   },
+   {
+    "dirDescription": "North",
+    "displayOrder": 1,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ US-290 WB",
+    "latitude": 30.345139999999997,
+    "latString": "30.345139999999997",
+    "longitude": -97.58068,
+    "lonString": "-97.58068",
+    "name": "FM-734 @ US-290 WB",
+    "netId": "AUS",
+    "roadwayOrder": 2,
+    "statusDescription": "Device Online"
+   },
+   {
+    "dirDescription": "North",
+    "displayOrder": 2,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ SH-130 NB",
+    "latitude": 30.35223,
+    "latString": "30.35223",
+    "longitude": -97.59128,
+    "lonString": "-97.59128",
+    "name": "FM-734 @ SH-130 NB",
+    "netId": "AUS",
+    "roadwayOrder": 4,
+    "statusDescription": "Device Online"
+   },
+   {
+    "dirDescription": "North",
+    "displayOrder": 0,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ US-290 EB",
+    "latitude": 30.34396,
+    "latString": "30.34396",
+    "longitude": -97.57987999999999,
+    "lonString": "-97.57987999999999",
+    "name": "FM-734 @ US-290 EB",
+    "netId": "AUS",
+    "roadwayOrder": 1,
+    "statusDescription": "Device Online"
+   },
+   {
+    "dirDescription": "North",
+    "displayOrder": 1,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ US-290 WB",
+    "latitude": 30.345139999999997,
+    "latString": "30.345139999999997",
+    "longitude": -97.58068,
+    "lonString": "-97.58068",
+    "name": "FM-734 @ US-290 WB",
+    "netId": "AUS",
+    "roadwayOrder": 2,
+    "statusDescription": "Device Online"
+   },
+   {
+    "dirDescription": "North",
+    "displayOrder": 3,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "IH-35",
+     "roadwayWithoutHyphensOrSpaces": "IH35"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "AUS-TRF-CCTV-915-4550",
+    "latitude": 30.26579,
+    "latString": "30.26579",
+    "longitude": -97.60186,
+    "lonString": "-97.60186",
+    "name": "AUS-TRF-CCTV-915-4550",
+    "netId": "AUS",
+    "roadwayOrder": 0,
+    "statusDescription": "Device Offline"
+   }
+  ],
+  "B": [
+   {
+    "dirDescription": "North",
+    "displayOrder": 0,
+    "distance": 0,
+    "equipLoc": {
+     "direction": "North",
+     "locationDescription": null,
+     "roadway": "FM-734",
+     "roadwayWithoutHyphensOrSpaces": "FM734"
+    },
+    "hasSnapshot": true,
+    "icd_Id": "FM-734 @ US-290 EB",
+    "latitude": 30.34396,
+    "latString": "30.34396",
+    "longitude": -97.57987999999999,
+    "lonString": "-97.57987999999999",
+    "name": "FM-734 @ US-290 EB",
+    "netId": "AUS",
+    "roadwayOrder": 1,
+    "statusDescription": "Device Online"
+   }
+  ]
+ }
+}

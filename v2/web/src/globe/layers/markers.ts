@@ -1,6 +1,7 @@
 import { AGE_ALPHA, type AgeBucket } from '../../lib/quakeStyle.ts';
 import type { LaunchState } from '../../lib/featureStyle.ts';
 import { BIKE_LEVEL_FILL, type BikeForm } from '../../lib/stationStyle.ts';
+import type { CameraForm } from '../../lib/cameraStyle.ts';
 import { MAP_HALO, MAP_SELECTION, markerKey, shapePoints, type MarkerShape, type MarkerVariant } from '../../lib/markerStyle.ts';
 
 /** Marker images are drawn once per (shape, colour) and shared by every billboard through the texture atlas. */
@@ -291,5 +292,86 @@ export function radioCanvas(key: string, sizePx: number, audio: boolean, color: 
       ctx.fillStyle = color;
       ctx.fill();
     }
+  });
+}
+
+/**
+ * Camera body: the ground hexagon. A camera whose facing is known is solid; an estimated one is hollow
+ * with a dashed rim. A live-video-only camera carries a small play notch.
+ */
+export function cameraBodyCanvas(key: string, f: CameraForm, sizePx: number, color: string): HTMLCanvasElement {
+  const size = Math.ceil(sizePx * 2 + 12);
+  return canvasFor(key, size, size, (ctx) => {
+    const c = size / 2;
+    const r = sizePx;
+    const hex = () => {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i - Math.PI / 2;
+        const x = c + r * Math.cos(a);
+        const y = c + r * Math.sin(a);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    };
+    hex();
+    ctx.strokeStyle = MAP_HALO;
+    ctx.lineWidth = 7;
+    ctx.stroke();
+    if (f.confidence === 'known') {
+      ctx.fillStyle = color;
+      ctx.fill();
+    } else {
+      ctx.fillStyle = MAP_HALO;
+      ctx.fill();
+      hex();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3.2;
+      ctx.setLineDash([7, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    if (f.kind === 'video') {
+      const d = r * 0.42;
+      ctx.beginPath();
+      ctx.moveTo(c - d * 0.6, c - d);
+      ctx.lineTo(c + d, c);
+      ctx.lineTo(c - d * 0.6, c + d);
+      ctx.closePath();
+      ctx.fillStyle = f.confidence === 'known' ? MAP_HALO : color;
+      ctx.fill();
+    }
+  });
+}
+
+/**
+ * View wedge of a camera whose facing is known: a translucent field-of-view cone pointing up from the centre
+ * of a square canvas, so the billboard can be rotated about its centre to the camera's heading.
+ */
+export function cameraWedgeCanvas(key: string, lengthPx: number, spreadDeg: number, color: string): HTMLCanvasElement {
+  const size = Math.ceil(lengthPx * 2 * 2 + 12);
+  return canvasFor(key, size, size, (ctx) => {
+    const c = size / 2;
+    const len = lengthPx * 2;
+    const half = (spreadDeg / 2) * (Math.PI / 180);
+    const path = () => {
+      ctx.beginPath();
+      ctx.moveTo(c, c);
+      ctx.arc(c, c, len, -Math.PI / 2 - half, -Math.PI / 2 + half);
+      ctx.closePath();
+    };
+    path();
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = MAP_HALO;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    path();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
   });
 }

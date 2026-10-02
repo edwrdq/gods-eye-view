@@ -147,8 +147,8 @@ const specs: Spec[] = [
     kind: 'features',
     name: 'Public cameras',
     category: 'ground',
-    description: 'Public traffic and city cameras published by transport agencies, placed on the map.',
-    sources: ['Austin Open Data', 'TxDOT', 'Caltrans', 'Transport for London', 'Ontario 511', 'Fintraffic'],
+    description: 'Traffic and city cameras that public agencies publish, with a live picture in the details.',
+    sources: ['City of Austin', 'TxDOT', 'Caltrans', 'Transport for London', 'Transport for NSW', 'DriveBC', 'City of Calgary', 'Fintraffic', 'Transpordiamet', 'City of Tallinn', 'DelDOT', 'Stadt Warendorf'],
   },
   {
     id: 'radio',
@@ -171,6 +171,7 @@ const implemented: ReadonlySet<string> = new Set([
   'cyclones',
   'bikeshare',
   'radio',
+  'cctv',
 ]);
 
 /** How each catalog layer is served (see LayerKind). */

@@ -187,6 +187,17 @@ export function flyToSelection(): void {
   flyTo({ lon: o.lon, lat: o.lat, bbox: frameBBox(ref.layer, o.lon, o.lat), kind: 'place' });
 }
 
+/**
+ * Put the camera where a public camera is and look along its heading. Only the position and the
+ * direction are known, not the lens, mounting height or tilt, so the view is approximate (the panel says so).
+ */
+export function lookFromCamera(): void {
+  const o = selection.detail?.observation;
+  const heading = o?.props.heading;
+  if (!o || typeof heading !== 'number') return;
+  flyTo({ lon: o.lon, lat: o.lat, kind: 'place', view: { heading, pitch: -12, heightAboveGround: 10 } });
+}
+
 export function toggleTrack(): void {
   if (!selection.ref) return;
   if (selection.track === 'on' || selection.track === 'loading') {

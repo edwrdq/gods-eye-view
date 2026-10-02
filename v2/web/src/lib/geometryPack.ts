@@ -2,6 +2,7 @@ import type { Feature, FeatureGeometry, PropValue } from '@gev/shared';
 import { lonLatAltToEcef } from './geo.ts';
 import { LAUNCH_ORDER, launchState } from './featureStyle.ts';
 import { bikeOrder } from './stationStyle.ts';
+import { cameraOrder } from './cameraStyle.ts';
 
 /**
  * Packs a features response into typed arrays on the worker so the main thread
@@ -35,6 +36,8 @@ export const SCHEMAS: Record<string, PackSchema> = {
   bikeshare: { numKeys: ['fill', 'capacity'], codeKeys: ['state', null], order: (p) => bikeOrder(typeof p.state === 'string' ? p.state : '') },
   // The server sends the most listened-to stations last, so they draw on top.
   radio: { numKeys: ['clicks', 'bitrate'], codeKeys: ['play', null] },
+  // Heading is numeric; confidence and still/video are coded. Cameras with a known facing draw on top of estimated ones.
+  cctv: { numKeys: ['heading', null], codeKeys: ['headingConfidence', 'type'], order: (p) => cameraOrder(typeof p.headingConfidence === 'string' ? p.headingConfidence : '') },
   launches: { numKeys: ['net', null], codeKeys: ['status', null], order: (p) => LAUNCH_ORDER[launchState(typeof p.status === 'string' ? p.status : null)] },
 };
 

@@ -39,6 +39,27 @@ export const DATA_CREDITS: readonly DataCredit[] = [
     licence: 'CC BY 3.0; operator terms vary',
   },
   {
+    layer: 'cctv',
+    lead: 'Public cameras',
+    text: 'Pictures belong to the agencies that publish them: City of Austin, Caltrans, TxDOT, DelDOT, City of Tallinn, Transpordiamet, Stadt Warendorf. Powered by TfL Open Data; contains OS data © Crown copyright and database rights.',
+    link: { href: 'https://tfl.gov.uk/info-for/open-data-users/', label: 'TfL Open Data' },
+    licence: 'TfL Open Data terms',
+  },
+  {
+    layer: 'cctv',
+    lead: 'Public cameras',
+    text: 'Fintraffic / digitraffic.fi and Live Traffic NSW (Transport for NSW),',
+    link: { href: 'https://creativecommons.org/licenses/by/4.0/', label: 'CC BY 4.0' },
+    licence: 'attribution required',
+  },
+  {
+    layer: 'cctv',
+    lead: 'Public cameras',
+    text: 'DriveBC (Government of British Columbia) and The City of Calgary, containing information licensed under the',
+    link: { href: 'https://www2.gov.bc.ca/gov/content/data/open-data/open-government-licence-bc', label: 'Open Government Licence' },
+    licence: 'BC and Calgary versions',
+  },
+  {
     layer: 'radio',
     lead: 'Radio stations',
     text: 'Directory from',

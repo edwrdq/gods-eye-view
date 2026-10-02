@@ -16,7 +16,7 @@ export function titleIsIdentifier(kind: LayerKind, title: string, objectId: stri
 }
 
 /** Half-width in degrees of the view "Fly to" frames around a feature of this layer. */
-const FRAME_HALF_DEG: Record<string, number> = { earthquakes: 0.6, launches: 0.15, cyclones: 6 };
+const FRAME_HALF_DEG: Record<string, number> = { earthquakes: 0.6, launches: 0.15, cyclones: 6, cctv: 0.004 };
 
 /** A box around a point sized for what the layer shows, for the camera to frame. */
 export function frameBBox(layerId: string, lon: number, lat: number): BBox {

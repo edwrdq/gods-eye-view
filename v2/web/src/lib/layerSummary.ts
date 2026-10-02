@@ -51,6 +51,8 @@ export function layerSummary(i: SummaryInput): string {
     case 'bikeshare':
       if (i.drawn > 0) return `${n(i.drawn)} ${layerNoun('bikeshare', i.drawn)}`;
       return i.truncated ? 'Zoom in to a city' : 'No bike stations in view';
+    case 'cctv':
+      return i.drawn === 0 ? 'No cameras in view' : `${n(i.drawn)} ${layerNoun('cctv', i.drawn)}`;
     case 'radio':
       return i.drawn === 0 ? 'No radio stations in view' : `${n(i.drawn)} ${layerNoun('radio', i.drawn)}`;
     default: {
@@ -70,6 +72,7 @@ export function layerSummary(i: SummaryInput): string {
 export function viewNote(layerId: string, drawn: number, truncated: boolean): string | null {
   if (!truncated) return null;
   if (layerId === 'bikeshare') return drawn === 0 ? 'Stations load for one city at a time.' : `Showing ${n(drawn)} stations. Zoom in for all.`;
+  if (layerId === 'cctv') return `Showing ${n(drawn)} cameras spread over the view. Zoom in for more.`;
   if (layerId === 'radio') return `Showing the ${n(drawn)} best known. Zoom in for more.`;
   return null;
 }

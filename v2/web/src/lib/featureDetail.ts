@@ -49,6 +49,8 @@ export function featureTimeNote(layer: string, t: number, now: number, historica
     }
     case 'bikeshare':
       return `Station reported ${formatAge(now - t)}`;
+    case 'cctv':
+      return 'Camera list from the operator';
     case 'radio':
       return 'From the Radio Browser directory';
     case 'submarine-cables':

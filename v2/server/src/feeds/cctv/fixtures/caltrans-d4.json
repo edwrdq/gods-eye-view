@@ -1,0 +1,214 @@
+{
+ "data": [
+  {
+   "cctv": {
+    "index": "1",
+    "recordTimestamp": {
+     "recordDate": "2026-01-23",
+     "recordTime": "14:19:48",
+     "recordEpoch": "1769206788"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TV102 -- I-580 : West of SR-24",
+     "nearbyPlace": "Oakland",
+     "longitude": "-122.27291",
+     "latitude": "37.82539",
+     "elevation": "49",
+     "direction": "West",
+     "county": "Alameda",
+     "route": "I-580",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "45.44",
+     "alignment": "",
+     "milepost": "61.52"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D4/W580_JWO_24_IC.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv102i580westofsr24/tv102i580westofsr24.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "3",
+    "recordTimestamp": {
+     "recordDate": "2021-03-22",
+     "recordTime": "12:02:07",
+     "recordEpoch": "1616439727"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TV224 -- SR-4 : Lone Tree Way",
+     "nearbyPlace": "Antioch",
+     "longitude": "-121.74233",
+     "latitude": "37.96199",
+     "elevation": "118",
+     "direction": "West",
+     "county": "Contra Costa",
+     "route": "SR-4",
+     "routeSuffix": "",
+     "postmilePrefix": "R",
+     "postmile": "32.93",
+     "alignment": "",
+     "milepost": "32.71"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D4/W4_at_Lone_Tree_Way.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv224sr4lonetreeway/tv224sr4lonetreeway.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "4",
+    "recordTimestamp": {
+     "recordDate": "2019-08-13",
+     "recordTime": "17:03:13",
+     "recordEpoch": "1565740993"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TV127 -- US-101 : Wilfred Avenue",
+     "nearbyPlace": "Rohnert Park",
+     "longitude": "-122.7129",
+     "latitude": "38.36362",
+     "elevation": "98",
+     "direction": "South",
+     "county": "Sonoma",
+     "route": "US-101",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "14.94",
+     "alignment": "",
+     "milepost": "483.4"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D4/S101_at_Wilfred_Av.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv127us101wilfredavenue/tv127us101wilfredavenue.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "5",
+    "recordTimestamp": {
+     "recordDate": "2022-06-23",
+     "recordTime": "16:30:34",
+     "recordEpoch": "1656027034"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TV216 -- I-680 : North Main Street",
+     "nearbyPlace": "Walnut Creek",
+     "longitude": "-122.06656",
+     "latitude": "37.91497",
+     "elevation": "121",
+     "direction": "South",
+     "county": "Contra Costa",
+     "route": "I-680",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "15.52",
+     "alignment": "",
+     "milepost": "47.02"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D4/S680_at_N_Main_St.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv216i680northmainstreet/tv216i680northmainstreet.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "44",
+    "recordTimestamp": {
+     "recordDate": "2018-09-27",
+     "recordTime": "14:54:34",
+     "recordEpoch": "1538085274"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TVE03 -- SR-92 : San Mateo Bridge Substation 2",
+     "nearbyPlace": "San Mateo",
+     "longitude": "-122.25085",
+     "latitude": "37.58439",
+     "elevation": "0",
+     "direction": "Median",
+     "county": "San Mateo",
+     "route": "SR-92",
+     "routeSuffix": "",
+     "postmilePrefix": "R",
+     "postmile": "15.44",
+     "alignment": "",
+     "milepost": "16.17"
+    },
+    "inService": "true",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tve03sr92sanmateobridgesubstation2/tve03sr92sanmateobridgesubstation2.jpg"
+     }
+    }
+   }
+  },
+  {
+   "cctv": {
+    "index": "143",
+    "recordTimestamp": {
+     "recordDate": "2026-01-15",
+     "recordTime": "17:18:28",
+     "recordEpoch": "1768526308"
+    },
+    "location": {
+     "district": "4",
+     "locationName": "TV965 -- I-80 : SR-29",
+     "nearbyPlace": "Vallejo",
+     "longitude": "-122.232165",
+     "latitude": "38.076304",
+     "elevation": "91",
+     "direction": "West",
+     "county": "Solano",
+     "route": "I-80",
+     "routeSuffix": "",
+     "postmilePrefix": "",
+     "postmile": "1.14",
+     "alignment": "",
+     "milepost": "28.63"
+    },
+    "inService": "false",
+    "imageData": {
+     "imageDescription": "",
+     "streamingVideoURL": "https://wzmedia.dot.ca.gov/D4/W80_at_JCT_29.stream/playlist.m3u8",
+     "static": {
+      "currentImageUpdateFrequency": "5",
+      "currentImageURL": "https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv965i80sr29/tv965i80sr29.jpg"
+     }
+    }
+   }
+  }
+ ]
+}

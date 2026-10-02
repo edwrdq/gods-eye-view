@@ -12,7 +12,8 @@
   import Triangle from '@lucide/svelte/icons/triangle';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import X from '@lucide/svelte/icons/x';
-  import CategoryIcon from './CategoryIcon.svelte';
+  import CameraView from './CameraView.svelte';
+  import LayerIcon from './LayerIcon.svelte';
   import IconButton from './IconButton.svelte';
   import RadioPlayer from './RadioPlayer.svelte';
   import StatusChip from './StatusChip.svelte';
@@ -53,6 +54,7 @@
   const text = (v: PropValue): string => (v === null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? v.toLocaleString('en-US') : v);
 
   const isRadio = $derived(selection.ref?.layer === 'radio');
+  const isCamera = $derived(selection.ref?.layer === 'cctv');
   const urlLabel = $derived(isRadio ? 'Open homepage' : selection.ref?.layer === 'bikeshare' ? 'Operator site' : 'Open source page');
 
   // Military aircraft are a separate layer; the flag on the observation covers a civil layer that carries one.
@@ -86,11 +88,11 @@
     <div class="state">
       <MousePointer2 size={28} strokeWidth={1.5} class="state-icon" aria-hidden="true" />
       <h2>Nothing selected</h2>
-      <p>Click an aircraft, ship, earthquake, storm, launch, satellite, bike station or radio station on the globe to see its details here.</p>
+      <p>Click an aircraft, ship, earthquake, storm, launch, satellite, bike station, camera or radio station on the globe to see its details here.</p>
     </div>
   {:else if selection.phase === 'loading' && !detail}
     <div class="head">
-      <div class="tile"><CategoryIcon {category} /></div>
+      <div class="tile"><LayerIcon layerId={selection.ref?.layer} {category} /></div>
       <div class="skels"><span class="skel" style="width:55%;height:20px"></span><span class="skel" style="width:80%"></span></div>
       <IconButton label="Close details" onclick={() => selectObject(null)}><X size={18} strokeWidth={1.75} /></IconButton>
     </div>
@@ -99,7 +101,7 @@
     </div>
   {:else if selection.phase === 'error' && !detail}
     <div class="head">
-      <div class="tile"><CategoryIcon {category} /></div>
+      <div class="tile"><LayerIcon layerId={selection.ref?.layer} {category} /></div>
       <div class="titles"><h2 class="title mono">{selection.ref?.objectId}</h2></div>
       <IconButton label="Close details" onclick={() => selectObject(null)}><X size={18} strokeWidth={1.75} /></IconButton>
     </div>
@@ -111,7 +113,7 @@
     </div>
   {:else if detail}
     <div class="head">
-      <div class="tile"><CategoryIcon {category} /></div>
+      <div class="tile"><LayerIcon layerId={selection.ref?.layer} {category} /></div>
       <div class="titles">
         <h2 class="title truncate" class:mono={titleIsId} title={detail.title}>{detail.title}</h2>
         {#if detail.subtitle}<div class="sub">{detail.subtitle}</div>{/if}
@@ -124,7 +126,7 @@
           <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />{selection.following ? 'Following' : 'Follow'}
         </button>
       {:else}
-        <button class="btn" class:primary={!isRadio} type="button" onclick={flyToSelection}>
+        <button class="btn" class:primary={!isRadio && !isCamera} type="button" onclick={flyToSelection}>
           <LocateFixed size={14} strokeWidth={1.75} aria-hidden="true" />Fly to
         </button>
       {/if}
@@ -142,6 +144,8 @@
       </button>
     </div>
     {#if isRadio}<RadioPlayer id={detail.objectId} props={detail.observation.props} />{/if}
+    {#if isCamera}<CameraView id={detail.objectId} name={detail.title} props={detail.observation.props} />{/if}
+    {#if !isCamera}
     <div class="fresh">
       {#if military}<StatusChip tone="neutral"><Triangle size={12} strokeWidth={2} aria-hidden="true" />Military</StatusChip>{/if}
       {#if kind !== 'tracked' && !notInFeed}
@@ -175,6 +179,7 @@
         <span class="meta num">Last seen {formatAge(seenAgo)}</span>
       {/if}
     </div>
+    {/if}
     {#if notInFeed}
       <p class="notice" role="status">
         {#if kind !== 'tracked'}This {kind === 'orbits' ? 'satellite' : 'item'} is no longer in the feed. The last details received are shown.{:else if historical}This object wasn't recorded at the viewed time. The last details received are shown.{:else}This object is no longer in the feed. It may have landed, left coverage or stopped transmitting. The last known details are shown.{/if}

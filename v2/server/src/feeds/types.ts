@@ -85,6 +85,8 @@ export interface FeatureQuery {
 export interface FeatureResult {
   features: Feature[];
   truncated: boolean;
+  /** The feed is still loading data this view needs; the client asks again soon. */
+  pending?: boolean;
 }
 
 /** Events and shapes served through /features (earthquakes, cyclones, launches). */
@@ -95,6 +97,19 @@ export interface FeaturesFeed extends Feed {
   featureDetail(layer: string, featureId: string): Promise<FeatureDetail | null>;
 }
 
+/** What a feature's picture request came to. */
+export type ImageOutcome =
+  | { kind: 'ok'; image: { body: Uint8Array; contentType: string; frameTime: number; fetchedAt: number; refreshS: number; nextInS: number; origin: 'upstream' | 'cache' | 'stale' } }
+  /** The feature has no picture to show. */
+  | { kind: 'none'; message: string }
+  | { kind: 'error'; status: 502 | 504 | 404; message: string; retryAfterS: number | null };
+
+/** A features feed whose features have a live picture, served through /features/:id/image (cctv). */
+export interface ImageFeed extends Feed {
+  /** Null when the feature is unknown. */
+  image(layer: string, featureId: string): Promise<ImageOutcome | null>;
+}
+
 /** Orbital element sets served through /elements (satellites). */
 export interface OrbitsFeed extends Feed {
   /** Null when `group` is not one of this feed's groups. */
@@ -103,6 +118,7 @@ export interface OrbitsFeed extends Feed {
 
 export const isTrackedFeed = (f: Feed): f is TrackedFeed => 'live' in f;
 export const isFeaturesFeed = (f: Feed): f is FeaturesFeed => 'features' in f;
+export const isImageFeed = (f: Feed): f is ImageFeed => 'image' in f;
 export const isOrbitsFeed = (f: Feed): f is OrbitsFeed => 'elements' in f;
 
 /** Persists a batch of observations (one transaction). */

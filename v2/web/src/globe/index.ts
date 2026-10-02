@@ -178,9 +178,21 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
         // A point-like box (a building) frames tighter than a city-sized default.
         altitude = altitudeForBBox(box, { aspect, fovY, minAltitude: target.kind === 'place' ? 4_000 : 1_200 });
       }
+      let heading = 0;
+      let pitch = -90;
+      if (target.view) {
+        // Ground under the point: 3D tiles when they are loaded there, else terrain, else the ellipsoid.
+        const carto = Cesium.Cartographic.fromDegrees(target.lon, target.lat);
+        const ground = (scene.sampleHeightSupported ? scene.sampleHeight(carto) : undefined) ?? scene.globe.getHeight(carto) ?? 0;
+        lon = target.lon;
+        lat = target.lat;
+        altitude = ground + target.view.heightAboveGround;
+        heading = target.view.heading;
+        pitch = target.view.pitch;
+      }
       camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(lon, lat, altitude),
-        orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+        orientation: { heading: Cesium.Math.toRadians(heading), pitch: Cesium.Math.toRadians(pitch), roll: 0 },
         duration: reduceMotion.matches ? 0 : 2.2,
         easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
       });

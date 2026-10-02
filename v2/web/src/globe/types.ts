@@ -10,6 +10,11 @@ export interface FlyTarget {
   lat: number;
   bbox?: BBox;
   kind: PlaceKind;
+  /**
+   * Put the camera at the point and look along a heading, instead of looking down at it (a public
+   * camera's approximate view). The height is metres above the ground found under the point.
+   */
+  view?: { heading: number; pitch: number; heightAboveGround: number };
 }
 
 export interface CameraState {
