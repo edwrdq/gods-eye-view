@@ -1,5 +1,6 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type { BBox, Observation } from '@gev/shared';
+import { isWorld } from '../geo.ts';
 
 export interface StoredObservation extends Observation {
   id: number;
@@ -20,9 +21,36 @@ export interface ObservationRepo {
   insertObservations(obs: Observation[]): void;
   /** Newest first. */
   queryObservations(q: ObservationQuery): StoredObservation[];
-  /** Delete observations older than t (epoch ms). Returns rows removed. */
-  pruneBefore(t: number): number;
+  /**
+   * Delete observations older than t (epoch ms). Returns rows removed. With
+   * maxRows, removes at most that many (oldest first) so callers can chunk a
+   * large prune and yield to the event loop between chunks.
+   */
+  pruneBefore(t: number, maxRows?: number): number;
+  /**
+   * Latest observation per object with `from <= t <= to`, restricted to
+   * objects whose latest observation is inside bbox. Order is unspecified.
+   */
+  latestPerObject(q: LatestQuery): Observation[];
+  /** Most recent observation of one object at or before `to` (any age). */
+  latestFor(layer: string, objectId: string, to?: number): Observation | undefined;
+  /**
+   * Positions of one object, oldest first. When more than maxPoints rows match,
+   * the series is thinned evenly (first and last point are kept).
+   */
+  trackPoints(layer: string, objectId: string, from: number, to: number, maxPoints: number): TrackRow[];
+  /** Oldest and newest stored observation time across all layers. */
+  timeRange(): { from: number | null; to: number | null };
 }
+
+export interface LatestQuery {
+  layer: string;
+  from: number;
+  to: number;
+  bbox?: BBox;
+}
+
+export type TrackRow = [t: number, lon: number, lat: number, alt: number | null];
 
 const MAX_LIMIT = 100_000;
 
@@ -40,8 +68,13 @@ interface Row {
 }
 
 function toObservation(r: Row): StoredObservation {
-  const o: StoredObservation = {
-    id: r.id,
+  const o = toPlainObservation(r) as StoredObservation;
+  o.id = r.id;
+  return o;
+}
+
+function toPlainObservation(r: Row): Observation {
+  const o: Observation = {
     layer: r.layer,
     objectId: r.object_id,
     t: r.t,
@@ -136,13 +169,87 @@ export function createObservationRepo(db: DatabaseSync): ObservationRepo {
       return (db.prepare(sql).all(...params) as unknown as Row[]).map(toObservation);
     },
 
-    pruneBefore(t) {
+    pruneBefore(t, maxRows) {
       return inTransaction(() => {
+        if (maxRows === undefined) {
+          db.prepare(
+            'DELETE FROM observations_rtree WHERE id IN (SELECT id FROM observations WHERE t < ?)',
+          ).run(t);
+          return Number(db.prepare('DELETE FROM observations WHERE t < ?').run(t).changes);
+        }
+        const n = Math.max(1, Math.floor(maxRows));
         db.prepare(
-          'DELETE FROM observations_rtree WHERE id IN (SELECT id FROM observations WHERE t < ?)',
-        ).run(t);
-        return Number(db.prepare('DELETE FROM observations WHERE t < ?').run(t).changes);
+          `DELETE FROM observations_rtree WHERE id IN
+             (SELECT id FROM observations WHERE t < ? ORDER BY t LIMIT ?)`,
+        ).run(t, n);
+        return Number(
+          db
+            .prepare(
+              'DELETE FROM observations WHERE id IN (SELECT id FROM observations WHERE t < ? ORDER BY t LIMIT ?)',
+            )
+            .run(t, n).changes,
+        );
       });
+    },
+
+    latestPerObject(q) {
+      // Objects that reported inside the window come from the covering index;
+      // each one's newest row at or before `to` is then a single index seek.
+      // (A GROUP BY MAX(t) over every row in the window reads all of them,
+      // which is several times slower once history holds many points per object.)
+      const params: SQLInputValue[] = [q.layer, q.from, q.to, q.layer, q.to];
+      let where = '';
+      if (q.bbox && !isWorld(q.bbox)) {
+        const [west, south, east, north] = q.bbox;
+        where = 'WHERE o.lat >= ? AND o.lat <= ? AND ' + (west <= east ? 'o.lon >= ? AND o.lon <= ?' : '(o.lon >= ? OR o.lon <= ?)');
+        params.push(south, north, west, east);
+      }
+      const sql = `SELECT o.* FROM
+          (SELECT DISTINCT object_id FROM observations WHERE layer = ? AND t >= ? AND t <= ?) d
+          JOIN observations o ON o.id = (
+            SELECT i.id FROM observations i
+            WHERE i.layer = ? AND i.object_id = d.object_id AND i.t <= ?
+            ORDER BY i.t DESC, i.id DESC LIMIT 1)
+          ${where}`;
+      return (db.prepare(sql).all(...params) as unknown as Row[]).map(toPlainObservation);
+    },
+
+    latestFor(layer, objectId, to) {
+      const row = db
+        .prepare(
+          `SELECT * FROM observations WHERE layer = ? AND object_id = ? AND t <= ?
+           ORDER BY t DESC, id DESC LIMIT 1`,
+        )
+        .get(layer, objectId, to ?? Number.MAX_SAFE_INTEGER) as unknown as Row | undefined;
+      return row ? toPlainObservation(row) : undefined;
+    },
+
+    trackPoints(layer, objectId, from, to, maxPoints) {
+      const rows = db
+        .prepare(
+          `SELECT t, lon, lat, alt FROM observations
+           WHERE layer = ? AND object_id = ? AND t >= ? AND t <= ? ORDER BY t, id LIMIT ?`,
+        )
+        .all(layer, objectId, from, to, MAX_LIMIT) as unknown as {
+        t: number;
+        lon: number;
+        lat: number;
+        alt: number | null;
+      }[];
+      const pts = rows.map((r): TrackRow => [r.t, r.lon, r.lat, r.alt]);
+      const cap = Math.max(2, Math.floor(maxPoints));
+      if (pts.length <= cap) return pts;
+      const out: TrackRow[] = [];
+      for (let i = 0; i < cap; i++) out.push(pts[Math.round((i * (pts.length - 1)) / (cap - 1))]!);
+      return out;
+    },
+
+    timeRange() {
+      const r = db.prepare('SELECT MIN(t) AS lo, MAX(t) AS hi FROM observations').get() as unknown as {
+        lo: number | null;
+        hi: number | null;
+      };
+      return { from: r.lo, to: r.hi };
     },
   };
 }

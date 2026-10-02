@@ -4,12 +4,18 @@ import type { ApiError, ClientConfig, GeocodeResponse, HealthResponse } from '@g
 import { createApp } from './app.ts';
 import { GeocodeUnavailableError, type Geocoder } from './geocode.ts';
 import { buildLayers } from './layers.ts';
+import { openDb } from './db/index.ts';
+import { FeedManager } from './feeds/manager.ts';
 
 function setup(geocoder?: Partial<Geocoder>) {
   let t = 1_000_000;
   const clientConfig: ClientConfig = { googleMapsApiKey: 'g', cesiumIonToken: null, layers: buildLayers({}) };
   const calls: string[] = [];
+  const db = openDb(':memory:');
+  const feeds = new FeedManager({ feeds: [], definitions: [], repo: db.observations, retentionMs: 1000 });
   const app = createApp({
+    feeds,
+    observations: db.observations,
     clientConfig,
     geocoder: {
       search: geocoder?.search ?? (async (q) => {

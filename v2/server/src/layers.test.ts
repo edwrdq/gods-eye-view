@@ -15,8 +15,8 @@ test('keyed layers report needs-key until the key is set', () => {
     buildLayers(env).find((l) => l.id === id)?.status;
   assert.equal(status({}, 'vessels'), 'needs-key');
   assert.equal(status({ AISSTREAM_API_KEY: '  ' }, 'vessels'), 'needs-key');
-  assert.equal(status({ AISSTREAM_API_KEY: 'k' }, 'vessels'), 'planned');
+  assert.equal(status({ AISSTREAM_API_KEY: 'k' }, 'vessels'), 'disabled'); // not enabled via FEEDS
   assert.equal(status({}, 'fires'), 'needs-key');
   assert.equal(status({ FIRMS_MAP_KEY: 'k' }, 'fires'), 'planned');
-  assert.equal(status({}, 'flights'), 'planned');
+  assert.equal(status({}, 'flights'), 'disabled');
 });

@@ -31,6 +31,21 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: 'observations_time_indexes',
+    // observations_t: history range (MIN/MAX t) and pruneBefore (t < ?) would
+    // otherwise scan the whole table.
+    // observations_layer_time_object replaces observations_time (layer, t) with a
+    // covering version, so "which objects reported in this window" is answered
+    // from the index alone (see latestPerObject). Per-object lookups stay on
+    // observations_object from migration 1.
+    sql: `
+      CREATE INDEX observations_t ON observations (t);
+      DROP INDEX observations_time;
+      CREATE INDEX observations_layer_time_object ON observations (layer, t, object_id);
+    `,
+  },
 ];
 
 /** Apply pending migrations in order, each in its own transaction. Returns versions applied. */

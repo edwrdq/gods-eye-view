@@ -11,6 +11,10 @@ export interface Config {
   dataDir: string;
   googleMapsApiKey: string | null;
   cesiumIonToken: string | null;
+  /** Feed ids to run in the background (FEEDS, comma separated). */
+  feeds: string[];
+  /** How many days of observation history to keep (HISTORY_DAYS). */
+  historyDays: number;
   /** Raw environment, for feed keys that are checked by name (see layers.ts). */
   env: Record<string, string | undefined>;
 }
@@ -39,6 +43,20 @@ function parsePort(value: string | undefined): number {
   return port;
 }
 
+function parseFeeds(value: string | undefined): string[] {
+  const raw = text(value);
+  if (raw === null) return ['flights', 'vessels'];
+  return [...new Set(raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))];
+}
+
+function parseHistoryDays(value: string | undefined): number {
+  const raw = text(value);
+  if (raw === null) return 7;
+  const days = Number(raw);
+  if (!Number.isFinite(days) || days <= 0 || days > 3650) throw new Error(`Invalid HISTORY_DAYS: ${raw}`);
+  return days;
+}
+
 export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
   return {
     port: parsePort(env.PORT),
@@ -46,6 +64,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     dataDir: path.resolve(SERVER_DIR, text(env.DATA_DIR) ?? './data'),
     googleMapsApiKey: text(env.GOOGLE_MAPS_API_KEY),
     cesiumIonToken: text(env.CESIUM_ION_TOKEN),
+    feeds: parseFeeds(env.FEEDS),
+    historyDays: parseHistoryDays(env.HISTORY_DAYS),
     env,
   };
 }

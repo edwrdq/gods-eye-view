@@ -26,3 +26,16 @@ test('invalid PORT throws', () => {
   assert.throws(() => loadConfig({ PORT: 'abc' }));
   assert.throws(() => loadConfig({ PORT: '70000' }));
 });
+
+test('FEEDS and HISTORY_DAYS', () => {
+  const d = loadConfig({});
+  assert.deepEqual(d.feeds, ['flights', 'vessels']);
+  assert.equal(d.historyDays, 7);
+  const c = loadConfig({ FEEDS: ' Flights, vessels ,flights', HISTORY_DAYS: '14' });
+  assert.deepEqual(c.feeds, ['flights', 'vessels']);
+  assert.equal(c.historyDays, 14);
+  assert.deepEqual(loadConfig({ FEEDS: 'flights' }).feeds, ['flights']);
+  assert.equal(loadConfig({ HISTORY_DAYS: '0.5' }).historyDays, 0.5);
+  assert.throws(() => loadConfig({ HISTORY_DAYS: '0' }));
+  assert.throws(() => loadConfig({ HISTORY_DAYS: 'abc' }));
+});

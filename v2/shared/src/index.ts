@@ -47,6 +47,8 @@ export type LayerStatus =
   | 'available'
   /** Implemented but missing a required key. */
   | 'needs-key'
+  /** Implemented, but its feed is not enabled in server config (FEEDS). */
+  | 'disabled'
   /** Planned for v2, not yet ported. */
   | 'planned';
 
@@ -103,7 +105,15 @@ export interface Observation {
   props: Record<string, PropValue>;
 }
 
-/** Values a feed may put in Observation.props. Keep snapshot props small. */
+/**
+ * Values a feed may put in Observation.props. Keep snapshot props small.
+ * Snapshot prop vocabularies:
+ * - flights: callsign, registration, typeCode, category (Light, Small, Large,
+ *   Heavy, High performance, Rotorcraft, Glider, Lighter than air, UAV, ...),
+ *   onGround (always boolean), squawk, military.
+ * - vessels: name, callsign, category (Cargo, Tanker, Passenger, Fishing, Tug,
+ *   Pleasure craft, ...), navStatus, destination.
+ */
 export type PropValue = string | number | boolean | null;
 
 // ---------------------------------------------------------------- /api/feeds
@@ -177,6 +187,8 @@ export interface ObjectDetail {
   sections: DetailSection[];
   /** Upstream sources that contributed. */
   sources: string[];
+  /** True when the object is in the feed's current live picture. */
+  live?: boolean;
 }
 
 export interface DetailSection {

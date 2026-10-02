@@ -141,10 +141,32 @@ const specs: Spec[] = [
   },
 ];
 
-/** Catalog for ClientConfig. A layer whose required key is not set reports 'needs-key'. */
-export function buildLayers(env: Record<string, string | undefined> = {}): LayerDescriptor[] {
+/** Layers with a server feed implementation (enabled or not). */
+const implemented: ReadonlySet<string> = new Set(['flights', 'military-flights', 'vessels']);
+
+/** All catalog layer ids. */
+export const layerIds: ReadonlySet<string> = new Set(specs.map((s) => s.id));
+
+/**
+ * Catalog for ClientConfig. `available` lists layers whose server feed is
+ * implemented and enabled; those report 'available', or 'needs-key' when the
+ * required key is unset. Implemented layers whose feed is not enabled report
+ * 'disabled'. Every other layer reports 'planned' (or 'needs-key'
+ * when it has a key requirement that is unset, as before).
+ */
+export function buildLayers(
+  env: Record<string, string | undefined> = {},
+  available: ReadonlySet<string> = new Set(),
+): LayerDescriptor[] {
   return specs.map((spec) => {
     const missing = spec.requiredKey !== undefined && !env[spec.requiredKey]?.trim();
-    return { ...spec, status: missing ? 'needs-key' : 'planned' };
+    const status = missing
+      ? 'needs-key'
+      : available.has(spec.id)
+        ? 'available'
+        : implemented.has(spec.id)
+          ? 'disabled'
+          : 'planned';
+    return { ...spec, status };
   });
 }

@@ -6,6 +6,7 @@ import { createApp } from './app.ts';
 import { loadConfig, loadDotEnv } from './config.ts';
 import { openDb } from './db/index.ts';
 import { createGeocoder } from './geocode.ts';
+import { buildFeedManager, implementedLayers } from './feeds/registry.ts';
 import { buildLayers } from './layers.ts';
 
 loadDotEnv();
@@ -18,15 +19,20 @@ const { version } = JSON.parse(
 const clientConfig: ClientConfig = {
   googleMapsApiKey: config.googleMapsApiKey,
   cesiumIonToken: config.cesiumIonToken,
-  layers: buildLayers(config.env),
+  layers: buildLayers(config.env, implementedLayers(config.feeds)),
 };
+
+const feeds = buildFeedManager({ config, db });
 
 const app = createApp({
   clientConfig,
   geocoder: createGeocoder(),
   dbStatus: () => ({ path: db.path, sizeBytes: db.sizeBytes() }),
   version: version ?? '0.0.0',
+  feeds,
+  observations: db.observations,
 });
+feeds.start();
 
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`gev server v${version ?? '0.0.0'} listening on http://${config.host}:${info.port} (db ${db.path})`);
@@ -38,8 +44,10 @@ function shutdown(signal: string): void {
   closing = true;
   console.log(`${signal} received, shutting down`);
   server.close(() => {
-    db.close();
-    process.exit(0);
+    void feeds.stop().finally(() => {
+      db.close();
+      process.exit(0);
+    });
   });
   (server as { closeAllConnections?: () => void }).closeAllConnections?.();
   setTimeout(() => {
