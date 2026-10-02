@@ -5,9 +5,12 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import StatusChip from './StatusChip.svelte';
   import { effectiveState } from '../lib/cadence.ts';
+  import { HISTORY_NOTE_LIVE_ONLY } from '../lib/featureWindow.ts';
+  import { layerSummary } from '../lib/layerSummary.ts';
   import { isRendered, layerNoun } from '../lib/layers.ts';
   import { formatAge, formatClockUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
+  import { timeState } from '../state/time.svelte.ts';
   import { layerRun, retryLayer } from '../state/data.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
   import { layerStore } from '../state/layers.svelte.ts';
@@ -21,6 +24,19 @@
   const noun = $derived(feed ? layerNoun(layer.id, feed.count) : '');
   const age = $derived(feed?.lastSuccess != null ? formatAge(clock.now - feed.lastSuccess) : null);
   const showError = $derived(on && run?.phase === 'error' && run.error);
+  const plain = $derived(layer.kind === 'tracked');
+  // Features and orbits layers: one count line built from the layer's own vocabulary.
+  const summary = $derived(
+    layerSummary({
+      layerId: layer.id,
+      feedCount: feed?.count ?? 0,
+      drawn: run?.drawn ?? 0,
+      shown: run?.orbits?.shown,
+      at: layer.kind === 'features' && run?.historical ? run.at : null,
+    }),
+  );
+  const elementsAge = $derived(age);
+  const viewing = $derived(timeState.at !== null);
 </script>
 
 {#if isRendered(layer)}
@@ -34,6 +50,27 @@
       <StatusChip tone="error"><TriangleAlert size={12} strokeWidth={2} aria-hidden="true" />Error</StatusChip>
       <span class="msg">{run.error?.message}{run.hasData ? ' Showing older data.' : ''}</span>
       <button class="link" type="button" onclick={() => retryLayer(layer.id)}>Retry</button>
+    </div>
+  {:else if on && run && !plain}
+    <div class="layer-status">
+      {#if run.currentOnly}
+        <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Current</StatusChip>
+      {:else if layer.kind === 'orbits' && viewing}
+        <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Computed</StatusChip>
+      {:else if run.historical}
+        <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
+      {:else if health === 'stale' || health === 'error'}
+        <StatusChip tone={health}><Clock size={12} strokeWidth={2} aria-hidden="true" />{health === 'error' ? 'Error' : 'Stale'}</StatusChip>
+      {:else if layer.kind === 'orbits' && !run.hasData}
+        <StatusChip tone="loading">Waiting</StatusChip>
+      {:else}
+        <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
+      {/if}
+      <span class="num">{summary}</span>
+      {#if layer.kind === 'orbits' && elementsAge && !viewing}<span class="note">Elements updated {age}</span>{/if}
+      {#if run.currentOnly}<span class="note">{HISTORY_NOTE_LIVE_ONLY}</span>{/if}
+      {#if layer.kind === 'orbits' && viewing && timeState.at !== null}<span class="note">Positions predicted for <span class="mono">{formatClockUtc(timeState.at)}</span></span>{/if}
+      {#if run.truncated}<span class="note">Capped. Zoom in to see the rest.</span>{/if}
     </div>
   {:else if on && run && run.historical}
     <div class="layer-status">
@@ -59,8 +96,6 @@
       {#if run?.truncated}<span class="note">Capped. Zoom in to see the rest.</span>{/if}
     </div>
   {/if}
-{:else if on && layer.status === 'available'}
-  <div class="layer-status"><span>On. Drawing this layer arrives in a later step.</span></div>
 {/if}
 
 <style>

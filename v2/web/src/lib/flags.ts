@@ -5,6 +5,8 @@ export interface Flags {
   bench: number;
   /** Fixture feed states from `?feedstate=vessels:error,military-flights:stale`. */
   feedStates: Record<string, string>;
+  /** `?satbench=10000`: synthetic satellites (a Starlink-sized constellation) instead of the server's. */
+  satBench: number;
 }
 
 export interface FlagEnv {
@@ -21,7 +23,7 @@ export interface FlagEnv {
  */
 export function parseFlags(search: string, env: FlagEnv): Flags {
   const allowed = env.dev || env.fixturesEnv;
-  if (!allowed) return { fixtures: false, bench: 0, feedStates: {} };
+  if (!allowed) return { fixtures: false, bench: 0, feedStates: {}, satBench: 0 };
   const params = new URLSearchParams(search);
   const rawBench = params.get('bench');
   const n = rawBench === null ? 0 : Math.floor(Number(rawBench));
@@ -32,7 +34,10 @@ export function parseFlags(search: string, env: FlagEnv): Flags {
     const [layer, state] = part.split(':');
     if (layer && state) feedStates[layer] = state;
   }
-  return { fixtures, bench, feedStates };
+  const rawSat = params.get('satbench');
+  const sn = rawSat === null ? 0 : Math.floor(Number(rawSat));
+  const satBench = Number.isFinite(sn) && sn > 0 ? Math.min(sn, 19_999) : 0;
+  return { fixtures, bench, feedStates, satBench };
 }
 
 export function currentFlags(): Flags {

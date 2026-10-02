@@ -1,10 +1,12 @@
-import type { ObjectDetail } from '@gev/shared';
-import { ApiRequestError, fetchObject, fetchTrack, isAbort } from '../api/index.ts';
+import type { LayerKind, ObjectDetail } from '@gev/shared';
+import { ApiRequestError, fetchFeatureDetail, fetchObject, fetchTrack, isAbort } from '../api/index.ts';
 import type { Selected } from '../globe/index.ts';
 import { cadenceMs } from '../lib/cadence.ts';
+import { featureToObjectDetail } from '../lib/featureDetail.ts';
 import { formatLatLon } from '../lib/format.ts';
 import { feedStore } from './feeds.svelte.ts';
 import { flyTo } from './globe.svelte.ts';
+import { layerStore } from './layers.svelte.ts';
 import { onTimeCommit, timeState } from './time.svelte.ts';
 import { getData } from './data.svelte.ts';
 
@@ -12,10 +14,19 @@ export type DetailPhase = 'idle' | 'loading' | 'ready' | 'error' | 'gone';
 export type TrackPhase = 'off' | 'loading' | 'on' | 'empty' | 'error';
 
 const SIX_HOURS = 6 * 3_600_000;
+/** Satellite details are recomputed this often while one is selected. */
+const ORBIT_REFRESH_MS = 3_000;
+
+/** The orbit path is drawn on select and when the viewed time changes, not on every refresh. */
+let pathDue = true;
 
 /** The selected object and everything the detail panel shows about it. */
 export const selection = $state<{
   ref: Selected | null;
+  /** How the selected object's layer is drawn; decides where its detail comes from. */
+  kind: LayerKind;
+  /** Link to the authoritative page (features), when the server gave one. */
+  url: string | null;
   detail: ObjectDetail | null;
   phase: DetailPhase;
   error: string;
@@ -24,7 +35,7 @@ export const selection = $state<{
   following: boolean;
   track: TrackPhase;
   copied: boolean;
-}>({ ref: null, detail: null, phase: 'idle', error: '', refreshFailed: false, following: false, track: 'off', copied: false });
+}>({ ref: null, kind: 'tracked', url: null, detail: null, phase: 'idle', error: '', refreshFailed: false, following: false, track: 'off', copied: false });
 
 let detailCtl: AbortController | null = null;
 let trackCtl: AbortController | null = null;
@@ -47,8 +58,23 @@ async function loadDetail(): Promise<void> {
   const ctl = (detailCtl = new AbortController());
   clearTimeout(refreshTimer);
   try {
-    const detail = await fetchObject(ref.layer, ref.objectId, timeState.at, ctl.signal);
-    if (ctl.signal.aborted) return;
+    let detail: ObjectDetail | null;
+    if (selection.kind === 'features') {
+      const fd = await fetchFeatureDetail(ref.layer, ref.objectId, ctl.signal);
+      detail = featureToObjectDetail(fd);
+      selection.url = fd.url ?? null;
+    } else if (selection.kind === 'orbits') {
+      const draw = pathDue;
+      pathDue = false;
+      detail = (await getData()?.describeSatellite(ref.objectId, draw)) ?? null;
+      if (!detail && !ctl.signal.aborted) {
+        pathDue = draw;
+        throw new ApiRequestError('not-found', 404, 'Satellite not found');
+      }
+    } else {
+      detail = await fetchObject(ref.layer, ref.objectId, timeState.at, ctl.signal);
+    }
+    if (ctl.signal.aborted || !detail) return;
     selection.detail = detail;
     selection.phase = 'ready';
     selection.refreshFailed = false;
@@ -70,10 +96,11 @@ function scheduleRefresh(): void {
   clearTimeout(refreshTimer);
   if (!selection.ref || timeState.at !== null || document.hidden) return; // history does not change
   const freshness = feedStore.byLayer[selection.ref.layer]?.freshnessMs;
+  const delay = selection.kind === 'orbits' ? ORBIT_REFRESH_MS : cadenceMs(freshness);
   refreshTimer = setTimeout(() => {
     void loadDetail();
     if (selection.track === 'on') void loadTrack(true);
-  }, cadenceMs(freshness));
+  }, delay);
 }
 
 async function loadTrack(quiet = false): Promise<void> {
@@ -102,6 +129,9 @@ export function selectObject(ref: Selected | null): void {
   trackCtl?.abort();
   clearTimeout(refreshTimer);
   selection.ref = ref;
+  selection.kind = ref ? (layerStore.layers.find((l) => l.id === ref.layer)?.kind ?? 'tracked') : 'tracked';
+  selection.url = null;
+  pathDue = true;
   selection.detail = null;
   selection.error = '';
   selection.refreshFailed = false;
@@ -161,7 +191,8 @@ export function toggleTrack(): void {
 
 /** "a9f3c1  37.72130, -122.28740" */
 export function copyText(d: ObjectDetail): string {
-  return `${d.objectId}  ${formatLatLon(d.observation.lat, d.observation.lon, 5)}`;
+  const id = d.layer === 'satellites' ? `${d.title} (NORAD ${d.objectId})` : selection.kind === 'features' ? d.title : d.objectId;
+  return `${id}  ${formatLatLon(d.observation.lat, d.observation.lon, 5)}`;
 }
 
 export async function copySelection(): Promise<void> {
@@ -191,6 +222,7 @@ export async function copySelection(): Promise<void> {
 // Viewed time changed: reload what is shown for the new instant.
 onTimeCommit(() => {
   if (!selection.ref) return;
+  pathDue = true;
   void loadDetail();
   if (selection.track === 'on' || selection.track === 'empty') void loadTrack(true);
 });

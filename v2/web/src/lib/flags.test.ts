@@ -3,15 +3,15 @@ import { test } from 'node:test';
 import { parseFlags } from './flags.ts';
 
 test('flags are inert in a production build', () => {
-  assert.deepEqual(parseFlags('?bench=12000&fixtures=1', { dev: false, fixturesEnv: false }), { fixtures: false, bench: 0, feedStates: {} });
+  assert.deepEqual(parseFlags('?bench=12000&fixtures=1', { dev: false, fixturesEnv: false }), { fixtures: false, bench: 0, feedStates: {}, satBench: 0 });
 });
 
 test('bench implies fixtures in dev', () => {
-  assert.deepEqual(parseFlags('?bench=12000', { dev: true, fixturesEnv: false }), { fixtures: true, bench: 12000, feedStates: {} });
+  assert.deepEqual(parseFlags('?bench=12000', { dev: true, fixturesEnv: false }), { fixtures: true, bench: 12000, feedStates: {}, satBench: 0 });
 });
 
 test('VITE_FIXTURES enables fixtures without bench', () => {
-  assert.deepEqual(parseFlags('', { dev: false, fixturesEnv: true }), { fixtures: true, bench: 0, feedStates: {} });
+  assert.deepEqual(parseFlags('', { dev: false, fixturesEnv: true }), { fixtures: true, bench: 0, feedStates: {}, satBench: 0 });
 });
 
 test('bad bench values are ignored and capped', () => {
@@ -22,4 +22,12 @@ test('bad bench values are ignored and capped', () => {
 
 test('fixture feed states parse', () => {
   assert.deepEqual(parseFlags('?feedstate=vessels:error,flights:stale', { dev: true, fixturesEnv: false }).feedStates, { vessels: 'error', flights: 'stale' });
+});
+
+test('satbench is a dev flag, capped to a valid catalogue range', () => {
+  assert.equal(parseFlags('?satbench=10000', { dev: true, fixturesEnv: false }).satBench, 10000);
+  assert.equal(parseFlags('?satbench=10000', { dev: true, fixturesEnv: false }).fixtures, false);
+  assert.equal(parseFlags('?satbench=99999', { dev: true, fixturesEnv: false }).satBench, 19999);
+  assert.equal(parseFlags('?satbench=x', { dev: true, fixturesEnv: false }).satBench, 0);
+  assert.equal(parseFlags('?satbench=10000', { dev: false, fixturesEnv: false }).satBench, 0);
 });

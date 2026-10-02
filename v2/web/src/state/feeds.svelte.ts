@@ -6,6 +6,13 @@ const POLL_MS = 10_000;
 /** Latest FeedStatus per layer, from /api/feeds and from every snapshot answer. */
 export const feedStore = $state<{ byLayer: Record<string, FeedStatus>; loaded: boolean; failed: boolean }>({ byLayer: {}, loaded: false, failed: false });
 
+const listeners: Array<(feed: FeedStatus) => void> = [];
+
+/** Be told about every feed status that /api/feeds returns. */
+export function onFeedsUpdated(cb: (feed: FeedStatus) => void): void {
+  listeners.push(cb);
+}
+
 export function noteFeed(feed: FeedStatus): void {
   feedStore.byLayer[feed.layer] = feed;
 }
@@ -21,7 +28,10 @@ export function startFeedPolling(): () => void {
     ctl = new AbortController();
     try {
       const feeds = await fetchFeeds(ctl.signal);
-      for (const f of feeds) feedStore.byLayer[f.layer] = f;
+      for (const f of feeds) {
+        feedStore.byLayer[f.layer] = f;
+        for (const cb of listeners) cb(f);
+      }
       feedStore.loaded = true;
       feedStore.failed = false;
     } catch (e) {

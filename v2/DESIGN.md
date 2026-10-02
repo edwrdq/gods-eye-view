@@ -157,6 +157,20 @@ Lucide (ISC license), inlined as SVG symbols; in Svelte use `lucide-svelte` or `
 
 Dark is the default on `:root`. Light applies through `@media (prefers-color-scheme: light)` on `:root:not([data-theme])`, or explicitly with `<html data-theme="light">`; `data-theme="dark"` forces dark. Components use only semantic tokens. The globe stage is not themed. The theme choice (system / light / dark) should be stored client-side and applied before first paint.
 
+## Phase 3 map encodings
+
+Shapes and hues stay the category's (see the table above); everything below is a second and third channel inside the category. Each layer row carries a collapsible "Key" (open the first time, then remembered) drawn from the same functions as the map, so the legend cannot drift from the markers. Code: `web/src/lib/quakeStyle.ts`, `featureStyle.ts`, `globe/layers/markers.ts`.
+
+**Earthquakes** (hazards, circle). Size is magnitude: diameter 3.2 x 1.45^M px, clamped to 7-44 and bucketed to half units (M3 10 px, M5 21, M6 30, M7 43). Age is fill opacity in four steps against the viewed time (under 1 h 100%, under 6 h 80%, under 12 h 60%, older 42%); the rim fades far less, so old quakes stay readable as rings on dark ocean. Depth is a dark centre dot at 70 km and deeper; shallow is solid. Biggest events draw first so small ones stay visible on top. Labels (`M 5.1`) appear below 3,000 km camera height for the 60 nearest the view centre, and always for the selected one.
+
+**Cyclones** (weather, rounded square). The storm centre is a rounded square with a dark eye, sized by class (depression 16 px, tropical storm 18, H1 20, H2 22, H3 25, H4 28, H5 30) and always labelled "Name H3": a handful of identities, not clutter. The recorded track is a solid 2 px line, the forecast a dashed 2 px line (not happened yet), forecast times 10 px translucent squares labelled "+24 h" when zoomed in, and the uncertainty cone a single 16% fill with a 1.5 px outline. Lines and cone sit 150 m above the surface; markers are pulled 2 km towards the camera so lines never cover them. No active storms: the row says "No active storms" and the Key hides.
+
+**Launches** (space, star). Pad state is form, not hue: solid 26 px star = upcoming (drawn on top), hollow 20 px star = launched, hollow 22 px star with a cross in hazard red = failed or partial. Labels read "Mission · T-3 d" or "Mission · 26 d ago", one per spot and decluttered on screen ("+3 more here" when several launches share a pad).
+
+**Satellites** (space, small star). Small 14 px stars; the selected satellite gets the white ring, a label, and its orbit for one period either side of the viewed time: dim for the part already flown, bright for the part ahead. Group filter is a native select in the row ("All groups (956)", "Space stations (20)"); more than four options, so not chips.
+
+**History.** Earthquakes follow the time slider (24 h up to the viewed time, chip "Recorded"). Cyclones and launches only know the present: the row shows "Current" and "Not recorded for past times". Satellites are computed for the viewed time ("Computed").
+
 ## Owner decisions (2026-10-02)
 
 1. Indigo accent: approved.

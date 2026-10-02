@@ -1,4 +1,4 @@
-import type { BBox, FeedsResponse, FeedStatus, HistoryRange, LayerSnapshot, ObjectDetail, Track } from '@gev/shared';
+import type { BBox, ElementsResponse, FeatureDetail, FeaturesResponse, FeedsResponse, FeedStatus, HistoryRange, LayerSnapshot, ObjectDetail, Track } from '@gev/shared';
 import { bboxParam } from '../lib/bbox.ts';
 import { getJson } from './client.ts';
 
@@ -31,4 +31,24 @@ export function fetchTrack(layer: string, objectId: string, range: { from?: numb
 
 export function fetchHistoryRange(signal?: AbortSignal): Promise<HistoryRange> {
   return getJson<HistoryRange>('/history/range', undefined, signal);
+}
+
+export interface FeaturesQuery {
+  bbox?: BBox | null;
+  from?: number;
+  to?: number;
+}
+
+/** 404 unknown layer; 409 feed off or key missing. */
+export function fetchFeatures(layer: string, q: FeaturesQuery, signal?: AbortSignal): Promise<FeaturesResponse> {
+  return getJson<FeaturesResponse>(`/layers/${encodeURIComponent(layer)}/features`, { bbox: q.bbox ? bboxParam(q.bbox) : undefined, from: q.from, to: q.to }, signal);
+}
+
+export function fetchFeatureDetail(layer: string, featureId: string, signal?: AbortSignal): Promise<FeatureDetail> {
+  return getJson<FeatureDetail>(`/layers/${encodeURIComponent(layer)}/features/${encodeURIComponent(featureId)}`, undefined, signal);
+}
+
+/** Current orbital element sets; `group` narrows to one CelesTrak group (404 when unknown). */
+export function fetchElements(layer: string, group: string | null, signal?: AbortSignal): Promise<ElementsResponse> {
+  return getJson<ElementsResponse>(`/layers/${encodeURIComponent(layer)}/elements`, { group: group ?? undefined }, signal);
 }

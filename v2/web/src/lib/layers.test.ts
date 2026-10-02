@@ -42,10 +42,15 @@ test('toggleable and labels', () => {
 
 import { isRendered, layerNoun } from './layers.ts';
 
-test('only available, known point layers are rendered', () => {
-  assert.equal(isRendered(mk('flights', 'air', 'available')), true);
-  assert.equal(isRendered(mk('flights', 'air', 'needs-key')), false);
-  assert.equal(isRendered(mk('satellites', 'space', 'available')), false);
+test('only available layers with a renderer are drawn', () => {
+  const tracked = (id: string, status: LayerDescriptor['status']): LayerDescriptor => ({ ...mk(id, 'air', status), kind: 'tracked' });
+  assert.equal(isRendered(tracked('flights', 'available')), true);
+  assert.equal(isRendered(tracked('flights', 'needs-key')), false);
+  assert.equal(isRendered(tracked('trains', 'available')), false);
+  assert.equal(isRendered(mk('earthquakes', 'hazards', 'available')), true);
+  assert.equal(isRendered({ ...mk('satellites', 'space', 'available'), kind: 'orbits' }), true);
+  assert.equal(isRendered(mk('fires', 'hazards', 'needs-key')), false);
+  assert.equal(isRendered(mk('wind', 'weather', 'planned')), false);
 });
 
 test('layerNoun reads naturally', () => {
@@ -53,6 +58,10 @@ test('layerNoun reads naturally', () => {
   assert.equal(layerNoun('vessels', 1), 'ship');
   assert.equal(layerNoun('vessels', 5), 'ships');
   assert.equal(layerNoun('x', 5), 'objects');
+  assert.equal(layerNoun('earthquakes', 27), 'earthquakes');
+  assert.equal(layerNoun('cyclones', 2), 'active storms');
+  assert.equal(layerNoun('launches', 41), 'launches');
+  assert.equal(layerNoun('satellites', 956), 'satellites');
 });
 
 test('disabled layers cannot be toggled and say so', () => {

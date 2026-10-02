@@ -4,6 +4,7 @@
   import Clock from '@lucide/svelte/icons/clock';
   import Copy from '@lucide/svelte/icons/copy';
   import Crosshair from '@lucide/svelte/icons/crosshair';
+  import ExternalLink from '@lucide/svelte/icons/external-link';
   import History from '@lucide/svelte/icons/history';
   import MousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
   import Route from '@lucide/svelte/icons/route';
@@ -13,6 +14,8 @@
   import CategoryIcon from './CategoryIcon.svelte';
   import IconButton from './IconButton.svelte';
   import StatusChip from './StatusChip.svelte';
+  import { featureTimeNote } from '../lib/featureDetail.ts';
+  import { isLiveOnly } from '../lib/featureWindow.ts';
   import { formatAge, formatDuration, formatUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
@@ -27,7 +30,20 @@
   const seenAgo = $derived(detail ? Math.max(0, (historical ? timeState.at! : clock.now) - detail.observation.t) : 0);
   const freshness = $derived(feedStore.byLayer[selection.ref?.layer ?? '']?.freshnessMs ?? 60_000);
   // The server says whether the object is in the live picture; without that flag fall back to its age.
+  const kind = $derived(selection.kind);
   const notInFeed = $derived(selection.phase === 'gone' || (!historical && detail?.live === false));
+  // Features and orbits: what the chip and the line beside it say.
+  const currentOnly = $derived(kind === 'features' && historical && isLiveOnly(selection.ref?.layer ?? ''));
+  const epochMs = $derived(typeof detail?.observation.props.epoch === 'number' ? detail.observation.props.epoch : null);
+  const timeNote = $derived(
+    !detail
+      ? ''
+      : kind === 'orbits'
+        ? epochMs !== null
+          ? `Elements ${formatDuration(Math.max(0, clock.now - epochMs))} old`
+          : ''
+        : featureTimeNote(selection.ref?.layer ?? '', detail.observation.t, historical && !currentOnly ? timeState.at! : clock.now, historical && !currentOnly),
+  );
   const stale = $derived(!historical && detail?.live === undefined && seenAgo > freshness);
 
   const text = (v: PropValue): string => (v === null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? v.toLocaleString('en-US') : v);
@@ -63,7 +79,7 @@
     <div class="state">
       <MousePointer2 size={28} strokeWidth={1.5} class="state-icon" aria-hidden="true" />
       <h2>Nothing selected</h2>
-      <p>Click an aircraft, ship or other object on the globe to see its details here.</p>
+      <p>Click an aircraft, ship, earthquake, storm, launch or satellite on the globe to see its details here.</p>
     </div>
   {:else if selection.phase === 'loading' && !detail}
     <div class="head">
@@ -99,16 +115,36 @@
       <button class="btn primary" type="button" aria-pressed={selection.following} onclick={toggleFollow}>
         <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />{selection.following ? 'Following' : 'Follow'}
       </button>
-      <button class="btn" type="button" aria-pressed={selection.track === 'on' || selection.track === 'loading'} disabled={false} onclick={toggleTrack}>
-        <Route size={14} strokeWidth={1.75} aria-hidden="true" />{selection.track === 'on' ? 'Hide track' : selection.track === 'loading' ? 'Loading track' : 'Show track'}
-      </button>
+      {#if kind === 'tracked'}
+        <button class="btn" type="button" aria-pressed={selection.track === 'on' || selection.track === 'loading'} disabled={false} onclick={toggleTrack}>
+          <Route size={14} strokeWidth={1.75} aria-hidden="true" />{selection.track === 'on' ? 'Hide track' : selection.track === 'loading' ? 'Loading track' : 'Show track'}
+        </button>
+      {:else if selection.url}
+        <a class="btn" href={selection.url} target="_blank" rel="noopener noreferrer">
+          <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />Open source page<span class="visually-hidden"> (opens in a new tab)</span>
+        </a>
+      {/if}
       <button class="icon-outline" type="button" aria-label={selection.copied ? 'Copied' : 'Copy id and coordinates'} title="Copy id and coordinates" onclick={copySelection}>
         {#if selection.copied}<Check size={14} strokeWidth={2} aria-hidden="true" />{:else}<Copy size={14} strokeWidth={1.75} aria-hidden="true" />{/if}
       </button>
     </div>
     <div class="fresh">
       {#if military}<StatusChip tone="neutral"><Triangle size={12} strokeWidth={2} aria-hidden="true" />Military</StatusChip>{/if}
-      {#if notInFeed}
+      {#if kind !== 'tracked' && !notInFeed}
+        {#if currentOnly}
+          <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Current</StatusChip>
+          <span class="meta num">{timeNote}</span>
+        {:else if kind === 'orbits' && historical}
+          <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Computed</StatusChip>
+          <span class="meta num">{timeNote}</span>
+        {:else if historical}
+          <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
+          <span class="meta num">{timeNote}</span>
+        {:else}
+          <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
+          <span class="meta num">{timeNote}</span>
+        {/if}
+      {:else if notInFeed}
         <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />{historical ? 'Not recorded' : 'Not in feed'}</StatusChip>
         <span class="meta num">Last seen {formatAge(clock.now - detail.observation.t)}</span>
       {:else if historical}
@@ -124,9 +160,10 @@
     </div>
     {#if notInFeed}
       <p class="notice" role="status">
-        {#if historical}This object wasn't recorded at the viewed time. The last details received are shown.{:else}This object is no longer in the feed. It may have landed, left coverage or stopped transmitting. The last known details are shown.{/if}
+        {#if kind !== 'tracked'}This {kind === 'orbits' ? 'satellite' : 'item'} is no longer in the feed. The last details received are shown.{:else if historical}This object wasn't recorded at the viewed time. The last details received are shown.{:else}This object is no longer in the feed. It may have landed, left coverage or stopped transmitting. The last known details are shown.{/if}
       </p>
     {/if}
+    {#if currentOnly}<p class="notice" role="status">Not recorded for past times. This shows the current data.</p>{/if}
     {#if selection.track === 'empty'}<p class="notice" role="status">No recorded track for this object in the last 6 hours.</p>{/if}
     {#if selection.track === 'error'}<p class="notice err" role="alert">Couldn't load the track. Try again.</p>{/if}
     {#if selection.refreshFailed}<p class="notice" role="status">Couldn't refresh. Showing the last details received.</p>{/if}
@@ -210,6 +247,8 @@
     border: 1px solid var(--border-strong);
     font-weight: var(--weight-medium);
     white-space: nowrap;
+    color: inherit;
+    text-decoration: none;
   }
   .btn:hover {
     background: var(--hover-overlay);

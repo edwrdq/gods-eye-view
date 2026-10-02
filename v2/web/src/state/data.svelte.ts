@@ -3,8 +3,9 @@ import type { DataLayers, LayerRunState } from '../globe/index.ts';
 import { currentFlags } from '../lib/flags.ts';
 import { isRendered } from '../lib/layers.ts';
 import { loadDataLayers, hasGlobe, setOnGlobeReady } from './globe.svelte.ts';
-import { noteFeed } from './feeds.svelte.ts';
-import { layerStore } from './layers.svelte.ts';
+import { noteFeed, onFeedsUpdated } from './feeds.svelte.ts';
+import { writeStored } from '../lib/storage.ts';
+import { SAT_GROUP_KEY, layerStore } from './layers.svelte.ts';
 import { selectFromGlobe, onFollowStopped } from './selection.svelte.ts';
 import { onTimeCommit, setBusyProbe, timeState } from './time.svelte.ts';
 
@@ -34,7 +35,7 @@ async function ensureData(): Promise<DataLayers | null> {
     },
     (() => {
       const f = currentFlags();
-      return { fixtures: f.fixtures, bench: f.bench, feedStates: f.feedStates };
+      return { fixtures: f.fixtures, bench: f.bench, feedStates: f.feedStates, satBench: f.satBench };
     })(),
   ).then((d) => {
     if (!d) {
@@ -45,6 +46,7 @@ async function ensureData(): Promise<DataLayers | null> {
     if (import.meta.env.DEV || import.meta.env.VITE_FIXTURES) (window as unknown as { __gevData?: unknown }).__gevData = d;
     setBusyProbe(() => d.busy());
     d.setTime(timeState.at);
+    if (layerStore.satGroup !== null) d.setSatelliteGroup(layerStore.satGroup);
     return d;
   });
   return loading;
@@ -58,7 +60,7 @@ export async function syncData(): Promise<void> {
   if (!d) return;
   for (const l of layerStore.layers) {
     if (!isRendered(l)) continue;
-    d.setEnabled({ id: l.id, category: l.category }, layerStore.enabled[l.id] === true);
+    d.setEnabled({ id: l.id, category: l.category, kind: l.kind }, layerStore.enabled[l.id] === true);
   }
 }
 
@@ -68,6 +70,13 @@ export function setLayerEnabled(layer: LayerDescriptor, on: boolean): void {
   void syncData();
 }
 
+/** Show one satellite group (CelesTrak name) or all (null); remembered between sessions. */
+export function setSatelliteGroup(group: string | null): void {
+  layerStore.satGroup = group;
+  writeStored(SAT_GROUP_KEY, group ?? '');
+  data?.setSatelliteGroup(group);
+}
+
 export function retryLayer(layerId: string): void {
   data?.retry(layerId);
 }
@@ -75,3 +84,6 @@ export function retryLayer(layerId: string): void {
 onTimeCommit((at) => data?.setTime(at));
 
 setOnGlobeReady(() => void syncData());
+
+// The server refreshed its element sets: let the satellites layer fetch them again.
+onFeedsUpdated((feed) => data?.noteFeed(feed));

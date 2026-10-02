@@ -1,5 +1,5 @@
-import type { BBox, FeedStatus, LayerCategory, Track } from '@gev/shared';
-import type { ApiConfig, ApiFailure } from '../../api/index.ts';
+import type { BBox, FeedStatus, ObjectDetail, Track } from '@gev/shared';
+import type { ApiConfig } from '../../api/index.ts';
 import { SnapshotHub } from '../../data/hub.ts';
 import type { FailedMessage, FromWorker, UpdateMessage } from '../../data/protocol.ts';
 import { bboxArea, bboxContains, bboxFromRectangle } from '../../lib/bbox.ts';
@@ -10,6 +10,10 @@ import { thin } from '../../lib/trackStyle.ts';
 import { selectionRingCanvas, SELECTION_KEY } from './markers.ts';
 import { parsePickId, PointLayer } from './pointLayer.ts';
 import { TrackLine } from './track.ts';
+import type { ControllerHost, LayerController } from './host.ts';
+import type { FeatureController } from './featureController.ts';
+import type { OrbitController } from './orbitController.ts';
+import type { DataHooks, LayerRunState, LayerSpec, Selected, UpdateMetric } from './types.ts';
 
 type Cesium = typeof import('cesium');
 
@@ -18,49 +22,7 @@ export const LABEL_MAX_ALTITUDE_M = 800_000;
 const MOVE_DEBOUNCE_MS = 350;
 const MAX_TRACK_POINTS = 1500;
 
-export interface LayerSpec {
-  id: string;
-  category: LayerCategory;
-}
-
-export interface LayerRunState {
-  phase: 'loading' | 'ready' | 'error';
-  /** At least one snapshot has been drawn (stays true through later errors: stale data stays on screen). */
-  hasData: boolean;
-  feed: FeedStatus | null;
-  truncated: boolean;
-  /** Instant of the drawn snapshot. */
-  at: number | null;
-  historical: boolean;
-  /** Objects drawn. */
-  drawn: number;
-  error: { failure: ApiFailure; message: string } | null;
-}
-
-export interface UpdateMetric {
-  layer: string;
-  /** Objects in the server answer. */
-  received: number;
-  /** Primitives written (new + changed + removed). */
-  written: number;
-  /** Main-thread time to apply the update (mirror + primitives + labels), ms. */
-  applyMs: number;
-  /** Worker time: network fetch (with JSON parse) and typed-array diff, ms. */
-  fetchMs: number;
-  parseMs: number;
-}
-
-export interface Selected {
-  layer: string;
-  objectId: string;
-}
-
-export interface DataHooks {
-  onLayerState(layer: string, state: LayerRunState | null): void;
-  /** The user clicked an object (or empty globe: null). */
-  onPick(sel: Selected | null): void;
-  onFollowStopped(): void;
-}
+export type { DataHooks, GroupInfo, LayerRunState, LayerSpec, Selected, UpdateMetric } from './types.ts';
 
 interface Runtime {
   spec: LayerSpec;
@@ -87,6 +49,12 @@ export interface DataLayers {
   /** True while a snapshot request is in flight. */
   busy(): boolean;
   metrics(): readonly UpdateMetric[];
+  /** Newer feed status from /api/feeds (the satellites layer refetches its elements when the server's data changed). */
+  noteFeed(feed: FeedStatus): void;
+  /** Show one satellite group (CelesTrak name), or all with null. */
+  setSatelliteGroup(group: string | null): void;
+  /** Detail for a satellite, computed in the browser. `drawPath` also draws its orbit for one period either side of the viewed time. */
+  describeSatellite(noradId: string, drawPath: boolean): Promise<ObjectDetail | null>;
   destroy(): void;
 }
 
@@ -109,6 +77,43 @@ export function createDataLayers(
   let flying = false;
   let destroyed = false;
 
+  // --- feature and orbit controllers: loaded on first use so flights-only sessions never fetch them
+  const ctls: LayerController[] = [];
+  let featureCtl: FeatureController | null = null;
+  let orbitCtl: OrbitController | null = null;
+  const loading: { features?: Promise<FeatureController>; orbits?: Promise<OrbitController> } = {};
+  const wanted = new Map<string, LayerSpec>();
+  const host: ControllerHost = {
+    Cesium,
+    scene,
+    timeAt: () => timeAt,
+    emit: (layer, state) => hooks.onLayerState(layer, state),
+    metric: (m) => {
+      metrics.push(m);
+      if (metrics.length > 60) metrics.shift();
+    },
+    moved: (layer) => {
+      if (selected && selected.layer === layer) {
+        placeRing();
+        followStep();
+      }
+      refreshLabels();
+    },
+  };
+  const ctlOf = (layer: string): LayerController | undefined => ctls.find((c) => c.owns(layer));
+  const needFeatures = (): Promise<FeatureController> =>
+    (loading.features ??= import('./featureController.ts').then((m) => {
+      featureCtl = new m.FeatureController(host, api);
+      ctls.push(featureCtl);
+      return featureCtl;
+    }));
+  const needOrbits = (): Promise<OrbitController> =>
+    (loading.orbits ??= import('./orbitController.ts').then((m) => {
+      orbitCtl = new m.OrbitController(host, api, api.satBench);
+      ctls.push(orbitCtl);
+      return orbitCtl;
+    }));
+
   // --- selection ring: one billboard, moved to the selected object
   const ringCollection = scene.primitives.add(new Cesium.BillboardCollection({ scene }));
   const ring = ringCollection.add({ position: Cesium.Cartesian3.ZERO, show: false, scale: 0.5 });
@@ -125,32 +130,49 @@ export function createDataLayers(
     const show = camera.positionCartographic.height < LABEL_MAX_ALTITUDE_M;
     const center = show ? viewCenter() : null;
     for (const rt of layers.values()) rt.point.updateLabels(center);
+    if (ctls.length > 0) {
+      const c = viewCenter();
+      for (const ctl of ctls) ctl.updateLabels(c, camera.positionCartographic.height);
+    }
     scene.requestRender();
   }
 
-  function selectedSlot(): { rt: Runtime; slot: number } | null {
-    if (!selected) return null;
+  /** Earth-fixed position of the selected object, wherever it is drawn. */
+  function selectedPosition(): import('cesium').Cartesian3 | undefined {
+    if (!selected) return undefined;
     const rt = layers.get(selected.layer);
-    const slot = rt?.point.slotOf(selected.objectId);
-    return rt && slot !== undefined ? { rt, slot } : null;
+    if (rt) {
+      const slot = rt.point.slotOf(selected.objectId);
+      return slot === undefined ? undefined : rt.point.positionOf(slot);
+    }
+    return ctlOf(selected.layer)?.positionOf(selected.layer, selected.objectId);
+  }
+
+  /** Make `sel` the labelled object of its layer and clear the pin everywhere else. */
+  function pinSelected(sel: Selected | null): void {
+    for (const rt of layers.values()) {
+      const slot = sel && sel.layer === rt.spec.id ? rt.point.slotOf(sel.objectId) : undefined;
+      rt.point.pin(slot ?? -1);
+    }
+    for (const c of ctls) c.pin(sel);
   }
 
   function placeRing(): void {
-    const s = selectedSlot();
-    const pos = s ? s.rt.point.positionOf(s.slot) : undefined;
-    if (!s || !pos) {
+    const pos = selectedPosition();
+    if (!selected || !pos) {
       ring.show = false;
       return;
     }
     ring.position = pos;
+    const px = layers.has(selected.layer) ? 20 : (ctlOf(selected.layer)?.sizeOf(selected.layer, selected.objectId) ?? 20);
+    ring.scale = layers.has(selected.layer) ? 0.5 : Math.max(0.5, (px + 8) / 44);
     ring.show = true;
-    s.rt.point.pin(s.slot);
+    pinSelected(selected);
   }
 
   function followStep(): void {
     if (!following || flying) return;
-    const s = selectedSlot();
-    const target = s ? s.rt.point.positionOf(s.slot) : undefined;
+    const target = selectedPosition();
     const c = viewCenter();
     if (!target || !c) return;
     const a = Cesium.Cartesian3.normalize(c, new Cesium.Cartesian3());
@@ -266,6 +288,27 @@ export function createDataLayers(
 
   const api_: DataLayers = {
     setEnabled(spec, enabled) {
+      if (spec.kind !== 'tracked') {
+        // Features and orbit layers live in their own controllers (lazy chunks).
+        if (enabled) wanted.set(spec.id, spec);
+        else wanted.delete(spec.id);
+        if (!enabled && !ctlOf(spec.id) && !loading[spec.kind === 'orbits' ? 'orbits' : 'features']) return;
+        const ready = spec.kind === 'orbits' ? needOrbits() : needFeatures();
+        void ready.then((ctl) => {
+          if (destroyed) return;
+          if (wanted.has(spec.id)) {
+            ctl.enable(spec);
+            ctl.setTime(timeAt);
+          } else {
+            ctl.disable(spec.id);
+            if (selected?.layer === spec.id) {
+              api_.select(null);
+              hooks.onPick(null);
+            }
+          }
+        });
+        return;
+      }
       const existing = layers.get(spec.id);
       if (!enabled) {
         if (!existing) return;
@@ -301,23 +344,24 @@ export function createDataLayers(
       if (at === timeAt) return;
       timeAt = at;
       for (const rt of layers.values()) request(rt);
+      for (const c of ctls) c.setTime(at);
     },
     retry(layer) {
       const rt = layers.get(layer);
       if (rt) {
         rt.failures = 0;
         request(rt);
-      }
+      } else ctlOf(layer)?.retry(layer);
     },
     select(sel) {
       selected = sel;
+      orbitCtl?.select(sel && sel.layer === 'satellites' ? sel.objectId : null);
       if (!sel) {
         ring.show = false;
-        for (const rt of layers.values()) rt.point.pin(-1);
+        pinSelected(null);
         stopFollowing();
         api_.hideTrack();
       } else {
-        for (const rt of layers.values()) if (rt.spec.id !== sel.layer) rt.point.pin(-1);
         placeRing();
         if (following) stopFollowing();
       }
@@ -328,8 +372,7 @@ export function createDataLayers(
         stopFollowing();
         return true;
       }
-      const s = selectedSlot();
-      const target = s ? s.rt.point.positionOf(s.slot) : undefined;
+      const target = selectedPosition();
       if (!target) return false;
       flying = true;
       following = true;
@@ -361,9 +404,18 @@ export function createDataLayers(
     },
     busy() {
       for (const rt of layers.values()) if (rt.inflight !== 0) return true;
-      return false;
+      return ctls.some((c) => c.busy());
     },
     metrics: () => metrics,
+    noteFeed(feed) {
+      for (const c of ctls) c.noteFeed(feed);
+    },
+    setSatelliteGroup(group) {
+      void needOrbits().then((c) => c.setGroup(group));
+    },
+    async describeSatellite(noradId, drawPath) {
+      return (await needOrbits()).describe(noradId, drawPath);
+    },
     destroy() {
       destroyed = true;
       onMoveEnd.cancel();
@@ -377,6 +429,8 @@ export function createDataLayers(
         rt.point.destroy();
       }
       layers.clear();
+      for (const c of ctls) c.destroy();
+      ctls.length = 0;
       track.destroy();
       scene.primitives.remove(ringCollection);
       hub.destroy();

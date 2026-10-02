@@ -40,9 +40,11 @@ export interface ApiConfig {
   fixtures: boolean;
   bench: number;
   feedStates: Record<string, string>;
+  /** Synthetic satellites for the satellites performance bench; 0 = off. */
+  satBench: number;
 }
 
-let cfg: ApiConfig = { fixtures: false, bench: 0, feedStates: {} };
+let cfg: ApiConfig = { fixtures: false, bench: 0, feedStates: {}, satBench: 0 };
 
 /** Called once per thread (main and worker) before any request. */
 export function configureApi(next: ApiConfig): void {

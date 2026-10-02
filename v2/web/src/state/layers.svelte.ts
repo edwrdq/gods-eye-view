@@ -5,13 +5,17 @@ import { readStored, writeStored } from '../lib/storage.ts';
 
 export type ConfigStatus = 'loading' | 'ready' | 'error';
 
-/** Layer state only; nothing renders data in this phase. */
+export const SAT_GROUP_KEY = 'gev.v2.satGroup';
+
+/** What the layer panel needs to know about each layer. */
 export const layerStore = $state<{
   status: ConfigStatus;
   layers: LayerDescriptor[];
   enabled: Record<string, boolean>;
   config: ClientConfig | null;
-}>({ status: 'loading', layers: [], enabled: {}, config: null });
+  /** Satellite group shown (CelesTrak name); null shows every group. */
+  satGroup: string | null;
+}>({ status: 'loading', layers: [], enabled: {}, config: null, satGroup: readStored(SAT_GROUP_KEY) || null });
 
 export function toggleLayer(layer: LayerDescriptor) {
   if (!isToggleable(layer)) return;
@@ -26,7 +30,7 @@ export async function loadConfig(signal?: AbortSignal): Promise<ClientConfig | n
     if ((import.meta.env.DEV || import.meta.env.VITE_FIXTURES) && flags.fixtures) {
       config = (await import('../api/fixtures.ts')).fixtureConfig();
       // The bench starts with every drawable layer on so it can be measured without clicking.
-      if (flags.bench > 0) for (const l of config.layers) if (isRendered(l)) layerStore.enabled[l.id] = true;
+      if (flags.bench > 0) for (const l of config.layers) if (isRendered(l) && l.kind === 'tracked') layerStore.enabled[l.id] = true;
     } else {
       const res = await fetch('/api/config', { signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

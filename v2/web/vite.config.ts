@@ -29,6 +29,12 @@ export default defineConfig({
   ],
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
+  worker: {
+    format: 'es',
+    // satellite.js re-exports its WASM build, whose Node-only branch imports node:* modules.
+    // That branch never runs in a browser; leave the imports unresolved instead of failing the build.
+    rollupOptions: { external: [/^node:/] },
+  },
   build: {
     target: 'es2022',
     // The Cesium chunk is large by nature and loaded after the shell paints.

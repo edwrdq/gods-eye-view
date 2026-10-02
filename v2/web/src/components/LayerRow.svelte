@@ -1,10 +1,12 @@
 <script lang="ts">
   import type { LayerDescriptor } from '@gev/shared';
   import KeyRound from '@lucide/svelte/icons/key-round';
+  import LayerLegend from './LayerLegend.svelte';
   import LayerStatus from './LayerStatus.svelte';
+  import SatelliteGroups from './SatelliteGroups.svelte';
   import StatusChip from './StatusChip.svelte';
   import { isToggleable, switchLabel } from '../lib/layers.ts';
-  import { setLayerEnabled } from '../state/data.svelte.ts';
+  import { layerRun, setLayerEnabled } from '../state/data.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
   import { layerStore } from '../state/layers.svelte.ts';
 
@@ -40,6 +42,8 @@
     </div>
   {:else}
     <LayerStatus {layer} />
+    {#if on && layer.kind === 'orbits'}<SatelliteGroups />{/if}
+    {#if on && layer.kind !== 'tracked' && (layerRun[layer.id]?.drawn ?? 0) > 0}<LayerLegend {layer} />{/if}
   {/if}
 </div>
 

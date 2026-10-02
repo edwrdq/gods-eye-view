@@ -65,11 +65,12 @@ export function switchLabel(layer: LayerDescriptor): string {
   return layer.status === 'planned' ? `${layer.name} (planned)` : layer.status === 'needs-key' ? `${layer.name} (needs API key)` : layer.status === 'disabled' ? `${layer.name} (disabled)` : layer.name;
 }
 
-/** Layers the data renderer can draw today (everything else shows a placeholder when switched on). */
+/** Tracked layers the data renderer can draw today. Features and orbits layers are drawn by their generic renderers. */
 export const RENDERED_LAYERS: ReadonlySet<string> = new Set(['flights', 'military-flights', 'vessels']);
 
 export function isRendered(layer: LayerDescriptor): boolean {
-  return layer.status === 'available' && RENDERED_LAYERS.has(layer.id);
+  if (layer.status !== 'available') return false;
+  return layer.kind === 'tracked' ? RENDERED_LAYERS.has(layer.id) : true;
 }
 
 /** What the layer's objects are called in "11,482 aircraft". */
@@ -80,6 +81,14 @@ export function layerNoun(layerId: string, count: number): string {
       return 'aircraft';
     case 'vessels':
       return count === 1 ? 'ship' : 'ships';
+    case 'earthquakes':
+      return count === 1 ? 'earthquake' : 'earthquakes';
+    case 'cyclones':
+      return count === 1 ? 'active storm' : 'active storms';
+    case 'launches':
+      return count === 1 ? 'launch' : 'launches';
+    case 'satellites':
+      return count === 1 ? 'satellite' : 'satellites';
     default:
       return count === 1 ? 'object' : 'objects';
   }
