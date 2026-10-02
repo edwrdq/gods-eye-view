@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shell mock - God's Eye View v2</title>
+<link rel="stylesheet" href="../web/src/styles/tokens.css">
+<link rel="stylesheet" href="../web/src/styles/base.css">
+<style>
+  /* Mock-only component CSS. In the app these live in Svelte components. */
+  .shell { position: fixed; inset: 0; overflow: hidden; }
+
+  /* Globe stage: stand-in for Cesium imagery. Imagery does not follow the UI theme. */
+  .globe { position: absolute; inset: 0; background: #05080d; overflow: hidden; }
+  .globe::before { content: ""; position: absolute; left: 50%; top: 54%; width: 118vh; height: 118vh; transform: translate(-50%, -50%); border-radius: 50%;
+    background:
+      radial-gradient(ellipse 18% 12% at 33% 38%, #6f7d52 0 60%, transparent 100%),
+      radial-gradient(ellipse 22% 16% at 40% 52%, #7b8a5c 0 55%, transparent 100%),
+      radial-gradient(ellipse 12% 18% at 56% 34%, #8a8f6a 0 55%, transparent 100%),
+      radial-gradient(ellipse 10% 22% at 62% 60%, #6b7a52 0 55%, transparent 100%),
+      radial-gradient(ellipse 14% 7% at 48% 8%, #d9dee6 0 60%, transparent 100%),
+      radial-gradient(circle at 36% 30%, #1d4a73 0%, #0f2f50 45%, #07182b 80%, #040d18 100%);
+    box-shadow: 0 0 0 2px rgb(120 170 220 / .10), 0 0 90px 10px rgb(60 120 200 / .14); }
+  .globe svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .marker { stroke: var(--map-halo); stroke-width: 1.5; paint-order: stroke; }
+
+  .topbar { position: absolute; z-index: var(--z-bar); top: var(--shell-gutter); left: var(--shell-gutter); right: var(--shell-gutter);
+    height: var(--topbar-h); display: grid; grid-template-columns: 1fr minmax(0, 440px) 1fr; align-items: center; gap: var(--space-4); pointer-events: none; }
+  .topbar > * { pointer-events: auto; }
+  .brand { display: flex; align-items: center; gap: var(--space-2); justify-self: start; background: var(--surface-bar); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1); backdrop-filter: blur(var(--panel-blur)); height: var(--topbar-h); padding: 0 var(--space-4) 0 var(--space-2); }
+  .brand-name { font-weight: var(--weight-semibold); font-size: var(--text-sm); white-space: nowrap; }
+  .tools { justify-self: end; display: flex; gap: var(--space-2); background: var(--surface-bar); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-1); backdrop-filter: blur(var(--panel-blur)); height: var(--topbar-h); padding: 0 var(--space-2); align-items: center; }
+
+  .btn-icon { display: inline-grid; place-items: center; width: var(--control-h); height: var(--control-h); border-radius: var(--radius-sm); color: var(--text-secondary);
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+  .btn-icon:hover { background: var(--hover-overlay); color: var(--text-primary); }
+  .btn-icon:active { background: var(--active-overlay); }
+  .btn-icon[aria-pressed="true"] { color: var(--accent); background: var(--accent-subtle); }
+  .i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .i-sm { width: 14px; height: 14px; }
+  .i-xs { width: 12px; height: 12px; stroke-width: 2; }
+  .theme-light { display: none; }
+  :root[data-theme="light"] .theme-dark { display: none; }
+  :root[data-theme="light"] .theme-light { display: block; }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: var(--control-h); padding: 0 var(--space-4); border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong); background: transparent; color: var(--text-primary); font-weight: var(--weight-medium); font-size: var(--text-sm); white-space: nowrap;
+    transition: background var(--dur-fast) var(--ease-out); }
+  .btn:hover { background: var(--hover-overlay); }
+  .btn:active { background: var(--active-overlay); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-on); }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-sm { height: 26px; padding: 0 var(--space-3); font-size: var(--text-xs); }
+
+  /* Search */
+  .search { position: relative; justify-self: center; width: 100%; }
+  .search-box { display: flex; align-items: center; gap: var(--space-3); height: var(--topbar-h); padding: 0 var(--space-4); background: var(--surface-bar); border: 1px solid var(--border-default);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-1); backdrop-filter: blur(var(--panel-blur)); color: var(--text-secondary); }
+  .search-box:focus-within { border-color: var(--accent); outline: var(--focus-width) solid var(--focus-ring); outline-offset: 0; }
+  .search-box input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: none; font-size: var(--text-md); color: var(--text-primary); }
+  .kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-xs); padding: 1px 6px; line-height: 1.4; }
+  .results { position: absolute; top: calc(100% + var(--space-2)); left: 0; right: 0; background: var(--surface-panel); border: 1px solid var(--border-default); border-radius: var(--radius-md);
+    box-shadow: var(--shadow-3); backdrop-filter: blur(var(--panel-blur)); padding: var(--space-2); z-index: var(--z-popover); }
+  .results-group { padding: var(--space-3) var(--space-3) var(--space-2); font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-secondary); }
+  .result { display: grid; grid-template-columns: 20px 1fr auto; gap: var(--space-3); align-items: center; min-height: 40px; padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--text-primary); }
+  .result[aria-selected="true"] { background: var(--selected-bg); box-shadow: inset 0 0 0 1px var(--accent-subtle); }
+  .result:hover { background: var(--hover-overlay); }
+  .result-title { font-size: var(--text-sm); }
+  .result-title b { font-weight: var(--weight-semibold); }
+  .result-sub { font-size: var(--text-xs); color: var(--text-secondary); }
+  .result-type { font-size: var(--text-xs); color: var(--text-tertiary); }
+  .results-foot { display: flex; gap: var(--space-5); padding: var(--space-3) var(--space-3) var(--space-2); margin-top: var(--space-2); border-top: 1px solid var(--border-subtle); font-size: var(--text-xs); color: var(--text-tertiary); }
+  .results-foot span { display: inline-flex; gap: var(--space-2); align-items: center; }
+
+  /* Panels */
+  .panel { position: absolute; z-index: var(--z-panel); top: calc(var(--shell-gutter) * 2 + var(--topbar-h)); bottom: calc(var(--statusbar-h) + var(--shell-gutter) * 2);
+    background: var(--surface-panel); border: 1px solid var(--border-default); border-radius: var(--radius-md); box-shadow: var(--shadow-2); backdrop-filter: blur(var(--panel-blur));
+    display: flex; flex-direction: column; overflow: hidden; }
+  .panel-left { left: var(--shell-gutter); width: var(--panel-left-w); }
+  .panel-right { right: var(--shell-gutter); width: var(--panel-right-w); bottom: auto; max-height: calc(100% - var(--topbar-h) - var(--statusbar-h) - var(--shell-gutter) * 4); }
+  .panel-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-5); border-bottom: 1px solid var(--border-subtle); min-height: 48px; }
+  .panel-title { font-size: var(--text-md); font-weight: var(--weight-semibold); flex: 1; }
+  .panel-meta { font-size: var(--text-xs); color: var(--text-secondary); }
+  .panel-body { flex: 1; min-height: 0; }
+  .filter { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+  .field { display: flex; align-items: center; gap: var(--space-3); height: var(--control-h); padding: 0 var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: var(--surface-sunken); color: var(--text-tertiary); }
+  .field:focus-within { border-color: var(--accent); outline: var(--focus-width) solid var(--focus-ring); outline-offset: 0; }
+  .field input { flex: 1; min-width: 0; background: none; border: 0; outline: none; font-size: var(--text-sm); color: var(--text-primary); }
+
+  /* Layer groups and rows */
+  .group + .group { border-top: 1px solid var(--border-subtle); }
+  .group-head { display: flex; align-items: center; gap: var(--space-3); width: 100%; height: 40px; padding: 0 var(--space-4); font-weight: var(--weight-semibold); font-size: var(--text-sm); color: var(--text-primary); }
+  .group-head:hover { background: var(--hover-overlay); }
+  .group-head .cat-icon { color: var(--cat); }
+  .group-head .count { margin-left: auto; font-weight: var(--weight-regular); font-size: var(--text-xs); color: var(--text-secondary); }
+  .group-head .chev { color: var(--text-tertiary); transition: transform var(--dur-base) var(--ease-out); }
+  .group-head[aria-expanded="false"] .chev { transform: rotate(-90deg); }
+  .group-body[hidden] { display: none; }
+  .layer { display: grid; grid-template-columns: 1fr auto; gap: var(--space-1) var(--space-4); padding: var(--space-3) var(--space-4) var(--space-3) var(--space-4); margin: 0 var(--space-2); border-radius: var(--radius-sm); }
+  .layer + .layer { margin-top: 1px; }
+  .layer:hover { background: var(--hover-overlay); }
+  .layer.is-on { background: var(--selected-bg); }
+  .layer-name { font-size: var(--text-sm); font-weight: var(--weight-medium); display: flex; align-items: center; gap: var(--space-3); }
+  .layer-name::before { content: ""; width: 3px; height: 14px; border-radius: 2px; background: var(--cat); opacity: .35; }
+  .layer.is-on .layer-name::before { opacity: 1; }
+  .layer-desc { grid-column: 1; font-size: var(--text-xs); color: var(--text-secondary); line-height: 1.4; padding-left: calc(3px + var(--space-3)); }
+  .layer-status { grid-column: 1 / -1; padding-left: calc(3px + var(--space-3)); margin-top: var(--space-2); display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: var(--text-xs); color: var(--text-secondary); }
+  .layer.is-planned .layer-name, .layer.is-planned .layer-desc { color: var(--text-tertiary); }
+  .layer.is-planned:hover { background: none; }
+  .layer .switch { grid-column: 2; grid-row: 1 / span 2; align-self: start; margin-top: 1px; }
+
+  /* Status chip: color + icon + words. Never color alone. */
+  .chip { display: inline-flex; align-items: center; gap: var(--space-2); height: 20px; padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-xs); font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--c); background: var(--bg); white-space: nowrap; }
+  .chip-live { --c: var(--status-live); --bg: var(--status-live-bg); }
+  .chip-stale { --c: var(--status-stale); --bg: var(--status-stale-bg); }
+  .chip-error { --c: var(--status-error); --bg: var(--status-error-bg); }
+  .chip-key { --c: var(--status-key); --bg: var(--status-key-bg); }
+  .chip-planned { --c: var(--status-planned); --bg: transparent; border: 1px dashed var(--border-strong); height: 20px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .dot-ring { width: 8px; height: 8px; border-radius: 50%; border: 2px solid currentColor; }
+  .link { background: none; border: 0; padding: 0; color: var(--accent); font-size: var(--text-xs); text-decoration: underline; text-underline-offset: .2em; cursor: pointer; }
+  .link:hover { color: var(--accent-hover); }
+
+  /* Switch */
+  .switch { position: relative; width: 36px; height: 20px; border-radius: var(--radius-full); border: 1.5px solid var(--border-strong); background: transparent; flex: none; transition: background var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: var(--text-secondary); transition: transform var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out); }
+  .switch[aria-checked="true"] { background: var(--accent); border-color: var(--accent); }
+  .switch[aria-checked="true"]::after { transform: translateX(16px); background: var(--accent-on); }
+  .switch:disabled { opacity: .45; border-style: dashed; }
+  .switch:focus-visible { border-radius: var(--radius-full); }
+
+  /* Detail panel */
+  .detail-head { display: grid; grid-template-columns: 36px 1fr auto; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-3) var(--space-4) var(--space-5); border-bottom: 1px solid var(--border-subtle); }
+  .tile { width: 36px; height: 36px; border-radius: var(--radius-sm); display: grid; place-items: center; background: color-mix(in srgb, var(--cat) 16%, transparent); color: var(--cat); }
+  .detail-title { font-size: var(--text-lg); font-weight: var(--weight-semibold); font-family: var(--font-mono); letter-spacing: 0; line-height: 1.2; }
+  .detail-sub { font-size: var(--text-xs); color: var(--text-secondary); margin-top: 2px; }
+  .detail-actions { display: flex; gap: var(--space-3); padding: var(--space-4) var(--space-5); }
+  .detail-actions .btn { flex: 1; }
+  .section { padding: var(--space-3) var(--space-5) var(--space-4); }
+  .section + .section { border-top: 1px solid var(--border-subtle); }
+  .section h3 { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-3); }
+  .kv { display: grid; grid-template-columns: 112px 1fr; align-items: baseline; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); }
+  .kv dt { color: var(--text-secondary); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .kv dd small { color: var(--text-tertiary); font-size: var(--text-xs); margin-left: var(--space-2); }
+
+  .state { display: none; padding: var(--space-7) var(--space-6); text-align: center; color: var(--text-secondary); }
+  .state h3 { font-size: var(--text-md); color: var(--text-primary); margin-bottom: var(--space-3); }
+  .state p { max-width: 30ch; margin: 0 auto; font-size: var(--text-sm); }
+  .state .i-big { width: 28px; height: 28px; margin: 0 auto var(--space-4); color: var(--text-tertiary); stroke-width: 1.5; }
+  .skel { height: 12px; border-radius: 3px; background: var(--surface-raised); margin: var(--space-3) 0; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .45; } }
+  [data-detail="empty"] .state-empty, [data-detail="loading"] .state-loading, [data-detail="error"] .state-error { display: block; }
+  [data-detail="empty"] .detail-full, [data-detail="loading"] .detail-full, [data-detail="error"] .detail-full { display: none; }
+
+  /* Status bar */
+  .statusbar { position: absolute; z-index: var(--z-bar); left: var(--shell-gutter); right: var(--shell-gutter); bottom: var(--shell-gutter); height: var(--statusbar-h); display: flex; align-items: center; gap: var(--space-5);
+    padding: 0 var(--space-4); background: var(--surface-bar); border: 1px solid var(--border-default); border-radius: var(--radius-sm); backdrop-filter: blur(var(--panel-blur)); font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
+  .statusbar .seg { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .statusbar .seg b { font-weight: var(--weight-regular); color: var(--text-primary); }
+  .statusbar .grow { flex: 1; }
+  .statusbar button.seg { height: 100%; padding: 0 var(--space-2); border-radius: var(--radius-xs); color: inherit; }
+  .statusbar button.seg:hover { background: var(--hover-overlay); color: var(--text-primary); }
+
+  .only-narrow { display: none; }
+  @media (max-width: 1100px) { :root { --panel-left-w: 300px; --panel-right-w: 312px; } .brand-name { display: none; } .brand { padding-right: var(--space-2); } }
+  @media (max-width: 760px) {
+    :root { --shell-gutter: 8px; }
+    .topbar { grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); }
+    .results-foot { display: none; }
+    .result-type { display: none; }
+    .brand, .tools { padding: 0 var(--space-1); }
+    .only-narrow { display: inline-grid; }
+    .panel-left { width: auto; right: var(--shell-gutter); bottom: calc(var(--statusbar-h) + var(--shell-gutter) * 2); transform: translateY(0); }
+    .shell:not([data-left="open"]) .panel-left { display: none; }
+    .panel-right { left: var(--shell-gutter); right: var(--shell-gutter); width: auto; top: auto; bottom: calc(var(--statusbar-h) + var(--shell-gutter) * 2); max-height: 45%; border-radius: var(--radius-lg); }
+    .shell[data-left="open"] .panel-right { display: none; }
+    .statusbar .hide-narrow { display: none; }
+    .btn-icon, .switch { min-width: 40px; min-height: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Icon sprite: Lucide (ISC), 24x24, stroke-based. Inlined so there is no runtime network. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 12h16M4 6h16M4 18h16"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2m-7.07-2.93 1.41-1.41m11.32-11.32 1.41-1.41M2 12h2m16 0h2M6.34 6.34 4.93 4.93m14.14 14.14-1.41-1.41"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chevrons-left" viewBox="0 0 24 24"><path d="m11 17-5-5 5-5M18 17l-5-5 5-5"/></symbol>
+  <symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></symbol>
+  <symbol id="i-ship" viewBox="0 0 24 24"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1 .6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1M19.4 20A11.6 11.6 0 0 0 21 14l-9-4-9 4c0 2.9.9 5.3 2.8 7.8M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6M12 10v4M12 2v3"/></symbol>
+  <symbol id="i-satellite" viewBox="0 0 24 24"><path d="M13 7 9 3 5 7l4 4m8 0 4 4-4 4-4-4m-5-1 4 4 6-6-4-4ZM16 8l3-3M9 21a6 6 0 0 0-6-6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-factory" viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2ZM17 18h1M12 18h1M7 18h1"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.2 3.5a.5.5 0 0 0 .8-.4V7.9a.5.5 0 0 0-.8-.4L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.1 19.1 19.1"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.6 17.4A2 2 0 0 0 2 18.8V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.2a2 2 0 0 0 1.4-.6l.8-.8a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 5-5.5 10.200-7.400 11.800a1 1 0 0 1-1.200 0C9.500 20.200 4 15 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M22 12h-4M6 12H2M12 6V2M12 22v-4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.100 0-2-.9-2-2V4c0-1.100.9-2 2-2h10c1.100 0 2 .9 2 2"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.800 2.200a2 2 0 0 0-1.700 0L2.600 6.100a1 1 0 0 0 0 1.800l8.600 3.900a2 2 0 0 0 1.700 0l8.600-3.900a1 1 0 0 0 0-1.800ZM22 17.700l-9.200 4.100a2 2 0 0 1-1.700 0L2 17.700M22 12.700l-9.200 4.100a2 2 0 0 1-1.700 0L2 12.700"/></symbol>
+  <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.500a3.500 3.500 0 0 0 0-7h-11a3.500 3.500 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.800 9.800 0 0 1 6.700 2.800L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.800 9.800 0 0 1-6.700-2.800L3 16M8 16H3v5"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><path d="m4 4 7.100 16.500a.5.500 0 0 0 .9 0l2.400-6.100a.5.500 0 0 1 .3-.3l6.100-2.400a.5.500 0 0 0 0-.9Z"/></symbol>
+</svg>
+
+<div class="shell" id="shell">
+  <div class="globe" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <!-- sample map markers: color + distinct shape per category -->
+      <g class="marker">
+        <path d="M700 380l-5 11h10z" fill="var(--map-air)"/><path d="M742 352l-5 11h10z" fill="var(--map-air)"/><path d="M768 420l-5 11h10z" fill="var(--map-air)"/><path d="M611 440l-5 11h10z" fill="var(--map-air)"/><path d="M826 397l-5 11h10z" fill="var(--map-air)"/>
+        <path d="M640 520l5 5-5 5-5-5z" fill="var(--map-sea)"/><path d="M682 548l5 5-5 5-5-5z" fill="var(--map-sea)"/><path d="M901 505l5 5-5 5-5-5z" fill="var(--map-sea)"/>
+        <circle cx="905" cy="300" r="4.500" fill="var(--map-hazards)"/><circle cx="860" cy="332" r="4.500" fill="var(--map-hazards)"/><circle cx="560" cy="360" r="4.500" fill="var(--map-hazards)"/>
+        <rect x="790" y="300" width="9" height="9" rx="2" fill="var(--map-infrastructure)"/><rect x="522" y="470" width="9" height="9" rx="2" fill="var(--map-infrastructure)"/>
+      </g>
+      <!-- selected object -->
+      <circle cx="712" cy="404" r="13" fill="none" stroke="var(--map-selection)" stroke-width="2"/>
+      <path class="marker" d="M712 396l-6 13h12z" fill="var(--map-air)"/>
+      <path d="M640 440 Q676 424 712 404" fill="none" stroke="var(--map-air)" stroke-width="2" stroke-dasharray="1 5" stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <button class="btn-icon only-narrow" aria-label="Layers" id="btn-layers-narrow"><svg class="i"><use href="#i-layers"/></svg></button>
+      <button class="btn-icon" aria-label="Open app menu" aria-haspopup="menu"><svg class="i"><use href="#i-menu"/></svg></button>
+      <span class="brand-name">God's Eye View</span>
+    </div>
+
+    <div class="search" role="search">
+      <div class="search-box">
+        <svg class="i"><use href="#i-search"/></svg>
+        <input id="q" type="text" role="combobox" aria-expanded="true" aria-controls="results" aria-activedescendant="r1" aria-label="Search places or coordinates" placeholder="Search places or coordinates" value="san francisco" autocomplete="off">
+        <button class="btn-icon" aria-label="Clear search" style="width:28px;height:28px"><svg class="i i-sm"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="results" id="results" role="listbox" aria-label="Search results">
+        <div class="results-group" role="presentation">Places</div>
+        <div class="result" id="r1" role="option" aria-selected="true"><svg class="i i-sm"><use href="#i-pin"/></svg><div><div class="result-title"><b>San Francisco</b>, California, United States</div><div class="result-sub mono">37.7749, -122.4194</div></div><span class="result-type">City</span></div>
+        <div class="result" id="r2" role="option" aria-selected="false"><svg class="i i-sm"><use href="#i-pin"/></svg><div><div class="result-title"><b>San Francisco</b> International Airport (SFO)</div><div class="result-sub mono">37.6213, -122.3790</div></div><span class="result-type">Airport</span></div>
+        <div class="result" id="r3" role="option" aria-selected="false"><svg class="i i-sm"><use href="#i-pin"/></svg><div><div class="result-title"><b>San Francisco</b> Bay</div><div class="result-sub mono">37.7000, -122.3000</div></div><span class="result-type">Bay</span></div>
+        <div class="result" id="r4" role="option" aria-selected="false"><svg class="i i-sm"><use href="#i-pin"/></svg><div><div class="result-title">San Francisco de Macor&iacute;s, Dominican Republic</div><div class="result-sub mono">19.3000, -70.2500</div></div><span class="result-type">City</span></div>
+        <div class="results-group" role="presentation">Coordinates</div>
+        <div class="result" id="r5" role="option" aria-selected="false"><svg class="i i-sm"><use href="#i-crosshair"/></svg><div><div class="result-title">Go to a coordinate</div><div class="result-sub">Try <span class="mono">37.62, -122.38</span> or <span class="mono">37&deg;37'N 122&deg;22'W</span></div></div><span></span></div>
+        <div class="results-foot"><span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span> to move</span><span><span class="kbd">Enter</span> to go</span><span><span class="kbd">Esc</span> to close</span></div>
+      </div>
+    </div>
+
+    <div class="tools">
+      <button class="btn-icon" id="theme" aria-label="Switch theme" title="Switch theme">
+        <svg class="i theme-dark"><use href="#i-sun"/></svg><svg class="i theme-light"><use href="#i-moon"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Left: layers -->
+  <aside class="panel panel-left" aria-label="Layers">
+    <div class="panel-head">
+      <h2 class="panel-title">Layers</h2>
+      <span class="panel-meta num">5 on</span>
+      <button class="btn-icon" aria-label="Collapse layers panel"><svg class="i"><use href="#i-chevrons-left"/></svg></button>
+    </div>
+    <div class="filter">
+      <label class="field"><svg class="i i-sm"><use href="#i-search"/></svg><input type="text" placeholder="Filter layers" aria-label="Filter layers"></label>
+    </div>
+    <div class="panel-body scroll-y">
+
+      <section class="group" style="--cat: var(--cat-air)">
+        <button class="group-head" aria-expanded="true"><svg class="i cat-icon"><use href="#i-plane"/></svg>Air<span class="count num">2 of 3 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body">
+          <div class="layer is-on"><div class="layer-name">Commercial flights</div><button class="switch" role="switch" aria-checked="true" aria-label="Commercial flights"></button><div class="layer-desc">Scheduled and private aircraft (ADS-B).</div>
+            <div class="layer-status"><span class="chip chip-live"><span class="dot"></span>Live</span><span class="num">11,482 aircraft &middot; 2 s ago</span></div></div>
+          <div class="layer is-on"><div class="layer-name">Military flights</div><button class="switch" role="switch" aria-checked="true" aria-label="Military flights"></button><div class="layer-desc">Aircraft flagged military in public ADS-B data.</div>
+            <div class="layer-status"><span class="chip chip-stale"><svg class="i i-xs"><use href="#i-clock"/></svg>Stale</span><span class="num">212 aircraft &middot; updated 14 min ago</span></div></div>
+          <div class="layer"><div class="layer-name">Airports and runways</div><button class="switch" role="switch" aria-checked="false" aria-label="Airports and runways"></button><div class="layer-desc">Airport locations, codes and runway outlines.</div></div>
+        </div>
+      </section>
+
+      <section class="group" style="--cat: var(--cat-sea)">
+        <button class="group-head" aria-expanded="true"><svg class="i cat-icon"><use href="#i-ship"/></svg>Sea<span class="count num">0 of 2 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body">
+          <div class="layer"><div class="layer-name">Ships (AIS)</div><button class="switch" role="switch" aria-checked="false" aria-label="Ships (AIS)" disabled></button><div class="layer-desc">Vessel positions from AIS transponders.</div>
+            <div class="layer-status"><span class="chip chip-key"><svg class="i i-xs"><use href="#i-key"/></svg>Needs API key</span><button class="link">Add key in settings</button></div></div>
+          <div class="layer is-planned"><div class="layer-name">Ports</div><button class="switch" role="switch" aria-checked="false" aria-label="Ports (planned)" disabled></button><div class="layer-desc">Major commercial ports and terminals.</div>
+            <div class="layer-status"><span class="chip chip-planned">Planned</span></div></div>
+        </div>
+      </section>
+
+      <section class="group" style="--cat: var(--cat-space)">
+        <button class="group-head" aria-expanded="true"><svg class="i cat-icon"><use href="#i-satellite"/></svg>Space<span class="count num">1 of 2 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body">
+          <div class="layer is-on"><div class="layer-name">Satellites</div><button class="switch" role="switch" aria-checked="true" aria-label="Satellites"></button><div class="layer-desc">Orbits computed from public TLE element sets.</div>
+            <div class="layer-status"><span class="chip chip-live"><span class="dot"></span>Live</span><span class="num">8,431 objects &middot; elements 3 h old</span></div></div>
+          <div class="layer"><div class="layer-name">Launches</div><button class="switch" role="switch" aria-checked="false" aria-label="Launches"></button><div class="layer-desc">Upcoming and recent orbital launches.</div></div>
+        </div>
+      </section>
+
+      <section class="group" style="--cat: var(--cat-hazards)">
+        <button class="group-head" aria-expanded="true"><svg class="i cat-icon"><use href="#i-alert"/></svg>Hazards<span class="count num">2 of 2 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body">
+          <div class="layer is-on"><div class="layer-name">Earthquakes</div><button class="switch" role="switch" aria-checked="true" aria-label="Earthquakes"></button><div class="layer-desc">Magnitude 2.5 and above, past 7 days.</div>
+            <div class="layer-status"><span class="chip chip-live"><span class="dot"></span>Live</span><span class="num">318 events &middot; 1 min ago</span></div></div>
+          <div class="layer is-on"><div class="layer-name">Fires</div><button class="switch" role="switch" aria-checked="true" aria-label="Fires"></button><div class="layer-desc">Satellite-detected active fire hotspots.</div>
+            <div class="layer-status"><span class="chip chip-error"><svg class="i i-xs"><use href="#i-alert"/></svg>Error</span><span>Source timed out.</span><button class="link">Retry</button></div></div>
+        </div>
+      </section>
+
+      <section class="group" style="--cat: var(--cat-weather)">
+        <button class="group-head" aria-expanded="false"><svg class="i cat-icon"><use href="#i-cloud"/></svg>Weather<span class="count num">0 of 3 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body" hidden></div>
+      </section>
+      <section class="group" style="--cat: var(--cat-infrastructure)">
+        <button class="group-head" aria-expanded="false"><svg class="i cat-icon"><use href="#i-factory"/></svg>Infrastructure<span class="count num">0 of 4 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body" hidden></div>
+      </section>
+      <section class="group" style="--cat: var(--cat-ground)">
+        <button class="group-head" aria-expanded="false"><svg class="i cat-icon"><use href="#i-video"/></svg>Ground<span class="count num">0 of 4 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body" hidden></div>
+      </section>
+      <section class="group" style="--cat: var(--cat-signals)">
+        <button class="group-head" aria-expanded="false"><svg class="i cat-icon"><use href="#i-radio"/></svg>Signals<span class="count num">0 of 1 on</span><svg class="i i-sm chev"><use href="#i-chevron-down"/></svg></button>
+        <div class="group-body" hidden></div>
+      </section>
+    </div>
+  </aside>
+
+  <!-- Right: detail. Switch states with #empty, #loading, #error in the URL. -->
+  <aside class="panel panel-right" aria-label="Object details" id="detail" data-detail="full" style="--cat: var(--cat-air)">
+    <div class="detail-full">
+      <div class="detail-head">
+        <div class="tile"><svg class="i"><use href="#i-plane"/></svg></div>
+        <div><h2 class="detail-title">UAL1523</h2><div class="detail-sub">Boeing 737-900ER &middot; N77520 &middot; United Airlines</div></div>
+        <button class="btn-icon" aria-label="Close details"><svg class="i"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-primary"><svg class="i i-sm"><use href="#i-crosshair"/></svg>Follow</button>
+        <button class="btn"><svg class="i i-sm"><use href="#i-route"/></svg>Show track</button>
+        <button class="btn-icon" aria-label="Copy link to this object" style="border:1px solid var(--border-strong)"><svg class="i i-sm"><use href="#i-copy"/></svg></button>
+      </div>
+      <div class="section" style="padding-top:0"><span class="chip chip-live"><span class="dot"></span>Live</span> <span class="panel-meta num" style="margin-left:6px">Last seen 2 s ago</span></div>
+      <div class="scroll-y" style="max-height: 460px">
+        <div class="section"><h3>Position</h3>
+          <dl class="kv">
+            <dt>Latitude</dt><dd class="mono">37.7213&deg; N</dd>
+            <dt>Longitude</dt><dd class="mono">122.2874&deg; W</dd>
+            <dt>Altitude</dt><dd>11,278 m <small>FL370 &middot; barometric</small></dd>
+            <dt>Ground speed</dt><dd>468 kt <small>867 km/h</small></dd>
+            <dt>Heading</dt><dd>072&deg; <small>ENE</small></dd>
+            <dt>Vertical rate</dt><dd>0 ft/min <small>level</small></dd>
+          </dl></div>
+        <div class="section"><h3>Aircraft</h3>
+          <dl class="kv">
+            <dt>Registration</dt><dd class="mono">N77520</dd>
+            <dt>Type</dt><dd>Boeing 737-900ER <small class="mono">B739</small></dd>
+            <dt>ICAO address</dt><dd class="mono">A9F3C1</dd>
+            <dt>Squawk</dt><dd class="mono">4521</dd>
+          </dl></div>
+        <div class="section"><h3>Source</h3>
+          <dl class="kv">
+            <dt>Feed</dt><dd>ADS-B Exchange</dd>
+            <dt>Received</dt><dd class="mono">2026-10-02 04:19:43Z</dd>
+            <dt>Position</dt><dd>Reported by aircraft <small>not estimated</small></dd>
+          </dl></div>
+      </div>
+    </div>
+
+    <div class="state state-empty">
+      <svg class="i i-big"><use href="#i-mouse"/></svg>
+      <h3>Nothing selected</h3>
+      <p>Click an aircraft, ship or other object on the globe to see its details here.</p>
+    </div>
+    <div class="state state-loading" style="text-align:left" aria-busy="true">
+      <div class="skel" style="width:40%;height:20px"></div><div class="skel" style="width:70%"></div><div class="skel" style="width:90%;margin-top:28px"></div><div class="skel" style="width:80%"></div><div class="skel" style="width:85%"></div>
+    </div>
+    <div class="state state-error" role="alert">
+      <svg class="i i-big" style="color:var(--status-error)"><use href="#i-alert"/></svg>
+      <h3>Couldn't load this object</h3>
+      <p>The flights source didn't respond. The object may have left coverage.</p>
+      <button class="btn btn-sm" style="margin-top:16px">Try again</button>
+    </div>
+  </aside>
+
+  <footer class="statusbar" role="contentinfo">
+    <span class="seg" title="Pointer position"><span>Cursor</span><b class="mono">37.6190&deg; N, 122.3750&deg; W</b></span>
+    <span class="seg hide-narrow"><span>Altitude</span><b class="num">2,840 km</b></span>
+    <span class="grow"></span>
+    <button class="seg hide-narrow" title="Show per-source freshness"><span class="chip chip-live" style="height:18px"><span class="dot"></span>Live</span><span>4 of 5 sources fresh</span></button>
+    <button class="seg hide-narrow" title="Time: live"><svg class="i i-sm"><use href="#i-clock"/></svg><span>Time</span><b>Now</b></button>
+    <a href="#attribution" class="seg" style="color:var(--text-secondary)">Imagery &amp; data attribution</a>
+  </footer>
+</div>
+
+<script>
+  const root = document.documentElement;
+  document.getElementById('theme').addEventListener('click', () => {
+    const dark = (root.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')) === 'dark';
+    root.dataset.theme = dark ? 'light' : 'dark';
+  });
+  document.querySelectorAll('.group-head').forEach(b => b.addEventListener('click', () => {
+    const open = b.getAttribute('aria-expanded') === 'true';
+    b.setAttribute('aria-expanded', String(!open));
+    b.nextElementSibling.hidden = open;
+  }));
+  document.querySelectorAll('.switch:not(:disabled)').forEach(s => s.addEventListener('click', () => {
+    const on = s.getAttribute('aria-checked') !== 'true';
+    s.setAttribute('aria-checked', String(on)); s.closest('.layer').classList.toggle('is-on', on);
+  }));
+  document.getElementById('btn-layers-narrow').addEventListener('click', () => {
+    const sh = document.getElementById('shell'); sh.dataset.left = sh.dataset.left === 'open' ? '' : 'open';
+  });
+  const h = location.hash.slice(1); if (['empty','loading','error'].includes(h)) document.getElementById('detail').dataset.detail = h;
+  const t = new URLSearchParams(location.search).get('theme'); if (t) root.dataset.theme = t;
+</script>
+</body>
+</html>
