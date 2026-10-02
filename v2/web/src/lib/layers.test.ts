@@ -4,6 +4,7 @@ import type { LayerDescriptor } from '@gev/shared';
 import { countOn, groupLayers, isToggleable, matchesFilter, switchLabel } from './layers.ts';
 
 const mk = (id: string, category: LayerDescriptor['category'], status: LayerDescriptor['status'], name = id): LayerDescriptor => ({
+  kind: 'features',
   id,
   name,
   category,

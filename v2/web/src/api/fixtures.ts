@@ -152,13 +152,13 @@ function feedStatus(layer: string, now: number, cfg: ApiConfig): FeedStatus {
 }
 
 const CONFIG_LAYERS: LayerDescriptor[] = [
-  { id: 'flights', name: 'Flights', category: 'air', description: 'Live positions of aircraft that broadcast ADS-B, with altitude, speed and heading.', status: 'available', sources: ['adsb.lol'] },
-  { id: 'military-flights', name: 'Military flights', category: 'air', description: 'Aircraft flagged as military in public ADS-B data, shown apart from civil traffic.', status: 'available', sources: ['adsb.lol'] },
-  { id: 'vessels', name: 'Ships', category: 'sea', description: 'Live ship positions from AIS transponders, with vessel type, course and speed.', status: 'available', sources: ['AISStream'] },
-  { id: 'satellites', name: 'Satellites', category: 'space', description: 'Orbiting satellites computed from public orbital elements, grouped by purpose.', status: 'planned', sources: ['CelesTrak'] },
-  { id: 'earthquakes', name: 'Earthquakes', category: 'hazards', description: 'Earthquakes from the last 24 hours, sized by magnitude.', status: 'planned', sources: ['USGS'] },
-  { id: 'fires', name: 'Active fires', category: 'hazards', description: 'Satellite fire detections from the last 24 hours.', status: 'needs-key', requiredKey: 'FIRMS_MAP_KEY', sources: ['NASA FIRMS'] },
-  { id: 'weather', name: 'Observed weather', category: 'weather', description: 'Current conditions from weather stations worldwide.', status: 'planned', sources: [] },
+  { id: 'flights', kind: 'tracked', name: 'Flights', category: 'air', description: 'Live positions of aircraft that broadcast ADS-B, with altitude, speed and heading.', status: 'available', sources: ['adsb.lol'] },
+  { id: 'military-flights', kind: 'tracked', name: 'Military flights', category: 'air', description: 'Aircraft flagged as military in public ADS-B data, shown apart from civil traffic.', status: 'available', sources: ['adsb.lol'] },
+  { id: 'vessels', kind: 'tracked', name: 'Ships', category: 'sea', description: 'Live ship positions from AIS transponders, with vessel type, course and speed.', status: 'available', sources: ['AISStream'] },
+  { id: 'satellites', kind: 'orbits', name: 'Satellites', category: 'space', description: 'Orbiting satellites computed from public orbital elements, grouped by purpose.', status: 'planned', sources: ['CelesTrak'] },
+  { id: 'earthquakes', kind: 'features', name: 'Earthquakes', category: 'hazards', description: 'Earthquakes from the last 24 hours, sized by magnitude.', status: 'planned', sources: ['USGS'] },
+  { id: 'fires', kind: 'features', name: 'Active fires', category: 'hazards', description: 'Satellite fire detections from the last 24 hours.', status: 'needs-key', requiredKey: 'FIRMS_MAP_KEY', sources: ['NASA FIRMS'] },
+  { id: 'weather', kind: 'features', name: 'Observed weather', category: 'weather', description: 'Current conditions from weather stations worldwide.', status: 'planned', sources: [] },
 ];
 
 export function fixtureConfig(): ClientConfig {
