@@ -26,8 +26,8 @@ export interface FlightsConfig {
 export const OPENSKY_MIN_INTERVAL_MS = 87_000;
 export const OPENSKY_DEFAULT_INTERVAL_MS = 90_000;
 /** The original app's adsb.lol point cache was 12 s; stay well above it. */
-export const ADSB_MIN_INTERVAL_MS = 15_000;
-export const ADSB_DEFAULT_INTERVAL_MS = 30_000;
+export const ADSB_MIN_INTERVAL_MS = 30_000;
+export const ADSB_DEFAULT_INTERVAL_MS = 60_000;
 
 function seconds(raw: string | undefined, def: number, min: number, name: string, warnings: string[]): number {
   const t = raw?.trim();

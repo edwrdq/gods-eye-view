@@ -24,7 +24,8 @@ function setup(env: Record<string, string> = {}, routes: Record<string, (url: st
     return handlers[key]!(url, init);
   };
   const feed = new FlightsFeed({
-    config: loadFlightsConfig(env),
+    // Timing tests below were written for a 30 s cadence; pin it (defaults are 60 s).
+    config: loadFlightsConfig({ ADSB_AREA_POLL_S: '30', ADSB_MIL_POLL_S: '30', ...env }),
     fetch: fetchFn,
     now: c.now,
     timers: manualTimers,
@@ -344,8 +345,8 @@ test('detail works without enrichment and uses the enricher when available', asy
 test('config: intervals clamp to the OpenSky credit budget and politeness floors', () => {
   const cfg = loadFlightsConfig({ OPENSKY_POLL_S: '30', ADSB_AREA_POLL_S: '2', ADSB_MIL_POLL_S: 'abc', ADSB_AREAS: '1,2;99,0' });
   assert.equal(cfg.openSkyIntervalMs, 87_000);
-  assert.equal(cfg.areaIntervalMs, 15_000);
-  assert.equal(cfg.milIntervalMs, 30_000);
+  assert.equal(cfg.areaIntervalMs, 30_000);
+  assert.equal(cfg.milIntervalMs, 60_000);
   assert.equal(cfg.areas.length, 1);
   assert.equal(cfg.warnings.length, 4);
   const def = loadFlightsConfig({});

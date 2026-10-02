@@ -76,7 +76,7 @@ export class AreaBook {
   private readonly ttlMs: number;
   private readonly maxDynamic: number;
 
-  constructor(staticAreas: Area[], now: () => number, ttlMs = 10 * 60_000, maxDynamic = 6) {
+  constructor(staticAreas: Area[], now: () => number, ttlMs = 10 * 60_000, maxDynamic = 3) {
     this.staticAreas = staticAreas;
     this.now = now;
     this.ttlMs = ttlMs;
