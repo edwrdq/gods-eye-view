@@ -17,7 +17,7 @@
   import StatusChip from './StatusChip.svelte';
   import { primaryAction, titleIsIdentifier } from '../lib/detailActions.ts';
   import { featureTimeNote } from '../lib/featureDetail.ts';
-  import { isLiveOnly } from '../lib/featureWindow.ts';
+  import { isLiveOnly, isStatic } from '../lib/featureWindow.ts';
   import { formatAge, formatDuration, formatUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
@@ -140,7 +140,10 @@
     <div class="fresh">
       {#if military}<StatusChip tone="neutral"><Triangle size={12} strokeWidth={2} aria-hidden="true" />Military</StatusChip>{/if}
       {#if kind !== 'tracked' && !notInFeed}
-        {#if currentOnly}
+        {#if isStatic(selection.ref?.layer ?? '')}
+          <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Snapshot</StatusChip>
+          <span class="meta num">{timeNote}</span>
+        {:else if currentOnly}
           <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Current</StatusChip>
           <span class="meta num">{timeNote}</span>
         {:else if kind === 'orbits' && historical}

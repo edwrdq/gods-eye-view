@@ -1,6 +1,10 @@
 import type { Config } from '../config.ts';
 import type { Db } from '../db/index.ts';
 import path from 'node:path';
+import { CablesFeed } from './cables/feed.ts';
+import { DatacentersFeed } from './datacenters/feed.ts';
+import { InstallationsFeed } from './installations/feed.ts';
+import { STATIC_FRESHNESS_MS } from './static/static-feed.ts';
 import { CyclonesFeed, CYCLONES_FRESHNESS_MS } from './cyclones/feed.ts';
 import { EarthquakesFeed, EARTHQUAKES_FRESHNESS_MS } from './earthquakes/feed.ts';
 import { LaunchesFeed, LAUNCHES_FRESHNESS_MS } from './launches/feed.ts';
@@ -20,6 +24,9 @@ export const FEED_DEFINITIONS: FeedDefinition[] = [
   { id: 'cyclones', layers: ['cyclones'], freshnessMs: CYCLONES_FRESHNESS_MS },
   { id: 'launches', layers: ['launches'], freshnessMs: LAUNCHES_FRESHNESS_MS },
   { id: 'satellites', layers: ['satellites'], freshnessMs: SATELLITES_FRESHNESS_MS },
+  { id: 'cables', layers: ['submarine-cables'], freshnessMs: STATIC_FRESHNESS_MS },
+  { id: 'datacenters', layers: ['datacenters'], freshnessMs: STATIC_FRESHNESS_MS },
+  { id: 'installations', layers: ['installations'], freshnessMs: STATIC_FRESHNESS_MS },
 ];
 
 /** Layer ids with a working server implementation (used for /api/config statuses). */
@@ -102,6 +109,7 @@ export function buildFeedManager(deps: BuildFeedsDeps): FeedManager {
           fetch: fetchFn,
           repo: deps.db.features,
           retentionDays: Number.isFinite(days) && days > 0 ? days : undefined,
+          backfill: !/^(0|false|off|no)$/i.test(env.EARTHQUAKES_BACKFILL?.trim() ?? ''),
           now: deps.now,
           timers: deps.timers,
           log,
@@ -137,6 +145,9 @@ export function buildFeedManager(deps: BuildFeedsDeps): FeedManager {
           log,
         }),
       );
+    } else if (id === 'cables' || id === 'datacenters' || id === 'installations') {
+      const opts = { now: deps.now, log };
+      feeds.push(id === 'cables' ? new CablesFeed(opts) : id === 'datacenters' ? new DatacentersFeed(opts) : new InstallationsFeed(opts));
     } else {
       log(`unknown feed "${id}" in FEEDS (known: ${FEED_DEFINITIONS.map((d) => d.id).join(', ')}); ignoring`);
     }

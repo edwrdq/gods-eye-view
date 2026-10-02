@@ -1,10 +1,12 @@
-import type { FeedStatus } from '@gev/shared';
+import type { BBox, FeedStatus } from '@gev/shared';
 import type { ApiConfig } from '../../api/index.ts';
 import { FeatureHub } from '../../data/featureHub.ts';
 import type { FeatureFailedMessage, FeaturesMessage, FromFeatureWorker } from '../../data/featureProtocol.ts';
+import { bboxArea, bboxContains } from '../../lib/bbox.ts';
 import { nextPollMs } from '../../lib/cadence.ts';
 import type { Rect } from '../../lib/declutter.ts';
-import { featureWindow, isLiveOnly, referenceTime } from '../../lib/featureWindow.ts';
+import { splitIds } from '../../lib/geometryPack.ts';
+import { featureWindow, ignoresTime, isStatic, referenceTime } from '../../lib/featureWindow.ts';
 import { FeatureLayer } from './featureLayer.ts';
 import type { ControllerHost, LayerController } from './host.ts';
 import type { LayerRunState, LayerSpec } from './types.ts';
@@ -18,6 +20,8 @@ interface Runtime {
   failures: number;
   /** The instant ages are measured against for the data on screen. */
   ref: number;
+  /** Area the last request asked for (static layers: null means the whole world). */
+  asked: BBox | null;
 }
 
 /** Polls and draws every `kind: 'features'` layer (earthquakes, cyclones, launches, ...). */
@@ -55,6 +59,7 @@ export class FeatureController implements LayerController {
       inflight: 0,
       failures: 0,
       ref: Date.now(),
+      asked: null,
     };
     this.layers.set(spec.id, rt);
     this.emit(rt);
@@ -74,13 +79,24 @@ export class FeatureController implements LayerController {
 
   setTime(at: number | null): void {
     for (const rt of this.layers.values()) {
-      if (isLiveOnly(rt.spec.id)) {
+      if (ignoresTime(rt.spec.id)) {
         // Current data stays; only the note in the row changes.
         rt.state = { ...rt.state, currentOnly: at !== null };
         this.emit(rt);
       } else {
         this.request(rt);
       }
+    }
+  }
+
+  /** Bundled datasets are asked for the viewed area: refetch when the view leaves it, or when a capped answer can now be fuller. */
+  cameraSettled(): void {
+    for (const rt of this.layers.values()) {
+      if (!isStatic(rt.spec.id) || rt.state.phase === 'loading' && !rt.state.hasData) continue;
+      const next = this.host.viewBBox();
+      const covered = rt.asked === null || bboxContains(rt.asked, next);
+      const zoomedIn = rt.state.truncated && bboxArea(next) < bboxArea(rt.asked) * 0.6;
+      if (!covered || zoomedIn) this.request(rt);
     }
   }
 
@@ -139,16 +155,19 @@ export class FeatureController implements LayerController {
   private schedule(rt: Runtime): void {
     this.clearTimer(rt);
     if (document.hidden || this.destroyed) return;
+    // A bundled dataset does not change: it is refetched when the view moves, never on a timer.
+    if (isStatic(rt.spec.id)) return;
     // A time-windowed layer in history mode is fetched on demand; current-only layers keep polling.
-    if (this.host.timeAt() !== null && !isLiveOnly(rt.spec.id)) return;
+    if (this.host.timeAt() !== null && !ignoresTime(rt.spec.id)) return;
     rt.timer = setTimeout(() => this.request(rt), nextPollMs(rt.state.feed, rt.state.drawn, rt.failures));
   }
 
   private request(rt: Runtime): void {
     this.clearTimer(rt);
     if (this.destroyed) return;
-    const at = isLiveOnly(rt.spec.id) ? null : this.host.timeAt();
-    rt.inflight = this.hub.fetch(rt.spec.id, featureWindow(rt.spec.id, at));
+    const at = ignoresTime(rt.spec.id) ? null : this.host.timeAt();
+    rt.asked = isStatic(rt.spec.id) ? this.host.viewBBox() : null;
+    rt.inflight = this.hub.fetch(rt.spec.id, featureWindow(rt.spec.id, at), rt.asked ?? undefined);
     if (!rt.state.hasData && rt.state.phase !== 'loading') {
       rt.state = { ...rt.state, phase: 'loading', error: null };
       this.emit(rt);
@@ -159,13 +178,15 @@ export class FeatureController implements LayerController {
     const rt = this.layers.get(m.layer);
     if (!rt || m.seq !== rt.inflight) return;
     const t0 = performance.now();
-    const at = isLiveOnly(m.layer) ? null : this.host.timeAt();
+    const at = ignoresTime(m.layer) ? null : this.host.timeAt();
     const now = Date.now();
     rt.ref = referenceTime(at, now);
     const written = rt.view.apply(m.pack, rt.ref, now);
     rt.inflight = 0;
     rt.failures = 0;
-    const drawn = m.pack.points.count + m.pack.lines.count + m.pack.polys.count;
+    // Cables are drawn as several parts each; count the cables, not the parts.
+    const lines = m.layer === 'submarine-cables' ? new Set(splitIds(m.pack.lines.ids)).size : m.pack.lines.count;
+    const drawn = m.pack.points.count + lines + m.pack.polys.count;
     rt.state = {
       phase: 'ready',
       hasData: true,
@@ -174,8 +195,9 @@ export class FeatureController implements LayerController {
       at: rt.ref,
       historical: at !== null,
       drawn,
+      lines,
       error: null,
-      currentOnly: isLiveOnly(m.layer) && this.host.timeAt() !== null,
+      currentOnly: ignoresTime(m.layer) && this.host.timeAt() !== null,
     };
     this.host.moved(m.layer);
     const applyMs = performance.now() - t0;

@@ -90,6 +90,7 @@ export function createDataLayers(
     Cesium,
     scene,
     timeAt: () => timeAt,
+    viewBBox: () => currentBBox(),
     emit: (layer, state) => hooks.onLayerState(layer, state),
     metric: (m) => {
       metrics.push(m);
@@ -270,6 +271,7 @@ export function createDataLayers(
       const zoomedIn = rt.lastTruncated && bboxArea(next) < bboxArea(rt.lastBBox ?? null) * 0.6;
       if (!covered || zoomedIn) request(rt);
     }
+    for (const ctl of ctls) ctl.cameraSettled?.();
     refreshLabels();
   }, MOVE_DEBOUNCE_MS);
   const offMoveEnd = camera.moveEnd.addEventListener(onMoveEnd);

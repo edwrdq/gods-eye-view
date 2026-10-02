@@ -35,22 +35,37 @@ export function keepScore(o: Observation, now: number): number {
   return s;
 }
 
-const better = (a: { score: number; o: Observation }, b: { score: number; o: Observation }): number =>
-  b.score - a.score || (a.o.objectId < b.o.objectId ? -1 : a.o.objectId > b.o.objectId ? 1 : 0);
+interface Scored<T> {
+  score: number;
+  o: T;
+}
+
+/** Where an item sits and how much it deserves to be kept; `id` breaks ties so the chosen set is stable. */
+export interface GridThinning<T> {
+  lon(item: T): number;
+  lat(item: T): number;
+  score(item: T): number;
+  id(item: T): string;
+}
 
 /**
- * Choose `cap` of `objects` spread evenly over the map. The area is cut into a
+ * Choose `cap` of `items` spread evenly over the map. The area is cut into a
  * grid (about two cells per slot kept); every cell is allowed the same number
- * of objects, the largest quota that fits the cap, so a harbour with 3,000
+ * of items, the largest quota that fits the cap, so a harbour with 3,000
  * vessels gives up most of them while open sea keeps all of its own. Inside a
- * cell the best-scoring objects win (see keepScore). Slots a quota leaves over
- * go to the best of the objects still waiting. Returns the input untouched
- * when it already fits.
+ * cell the best-scoring items win. Slots a quota leaves over go to the best of
+ * the items still waiting. Returns the input untouched when it already fits.
  */
-export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions): Observation[] {
-  if (objects.length <= cap) return objects;
+export function thinGrid<T>(items: T[], cap: number, box0: BBox | undefined, by: GridThinning<T>): T[] {
+  if (items.length <= cap) return items;
   if (cap <= 0) return [];
-  const box: BBox = opts.bbox ?? [-180, -90, 180, 90];
+  const better = (a: Scored<T>, b: Scored<T>): number => {
+    if (b.score !== a.score) return b.score - a.score;
+    const ia = by.id(a.o);
+    const ib = by.id(b.o);
+    return ia < ib ? -1 : ia > ib ? 1 : 0;
+  };
+  const box: BBox = box0 ?? [-180, -90, 180, 90];
   const west = box[0];
   const east = box[0] <= box[2] ? box[2] : box[2] + 360;
   const widthDeg = Math.max(1e-6, Math.min(360, east - west));
@@ -60,16 +75,16 @@ export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions
   const cellDeg = Math.max(1e-4, Math.sqrt((widthDeg * heightDeg) / areaCells));
   const cols = Math.max(1, Math.ceil(widthDeg / cellDeg));
 
-  const cells = new Map<number, Array<{ score: number; o: Observation }>>();
-  for (const o of objects) {
-    let lon = o.lon;
+  const cells = new Map<number, Array<Scored<T>>>();
+  for (const o of items) {
+    let lon = by.lon(o);
     if (!world && box[0] > box[2] && lon < box[0]) lon += 360; // box crosses the antimeridian
     const cx = Math.min(cols - 1, Math.max(0, Math.floor((lon - west) / cellDeg)));
-    const cy = Math.max(0, Math.floor((o.lat - box[1]) / cellDeg));
+    const cy = Math.max(0, Math.floor((by.lat(o) - box[1]) / cellDeg));
     const key = cy * cols + cx;
     let list = cells.get(key);
     if (!list) cells.set(key, (list = []));
-    list.push({ score: keepScore(o, opts.now), o });
+    list.push({ score: by.score(o), o });
   }
 
   const lists = [...cells.entries()].sort((a, b) => a[0] - b[0]).map(([, l]) => l.sort(better));
@@ -78,7 +93,7 @@ export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions
   let hi = lists.reduce((m, l) => Math.max(m, l.length), 1);
   const used = (q: number) => lists.reduce((n, l) => n + Math.min(l.length, q), 0);
   if (used(1) > cap) {
-    // More occupied cells than slots: keep the best object of the best-scoring cells.
+    // More occupied cells than slots: keep the best item of the best-scoring cells.
     const tops = lists.map((l) => l[0]!).sort(better);
     return tops.slice(0, cap).map((e) => e.o);
   }
@@ -87,8 +102,8 @@ export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions
     if (used(mid) <= cap) lo = mid;
     else hi = mid - 1;
   }
-  const out: Observation[] = [];
-  const next: Array<{ score: number; o: Observation }> = [];
+  const out: T[] = [];
+  const next: Array<Scored<T>> = [];
   for (const l of lists) {
     for (let i = 0; i < Math.min(l.length, lo); i++) out.push(l[i]!.o);
     // One runner-up per crowded cell; there are always more of them than free slots.
@@ -97,4 +112,14 @@ export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions
   next.sort(better);
   for (let i = 0; out.length < cap && i < next.length; i++) out.push(next[i]!.o);
   return out;
+}
+
+/** Thin observations to `cap` (moving, named and fresh ones preferred); see thinGrid. */
+export function thinToCap(objects: Observation[], cap: number, opts: ThinOptions): Observation[] {
+  return thinGrid(objects, cap, opts.bbox, {
+    lon: (o) => o.lon,
+    lat: (o) => o.lat,
+    score: (o) => keepScore(o, opts.now),
+    id: (o) => o.objectId,
+  });
 }

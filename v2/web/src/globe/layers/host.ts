@@ -10,6 +10,8 @@ export interface ControllerHost {
   scene: import('cesium').Scene;
   /** Viewed instant (null: live). */
   timeAt(): number | null;
+  /** The camera's visible area, padded; null when it covers (nearly) the whole world. */
+  viewBBox(): import('@gev/shared').BBox | null;
   emit(layer: string, state: LayerRunState | null): void;
   metric(m: UpdateMetric): void;
   /** Positions of a layer's objects changed: the selection ring, follow and labels may need to move. */
@@ -29,6 +31,8 @@ export interface LayerController {
   /** The selected object (any layer) or null: each layer labels its own and clears the rest. */
   pin(sel: { layer: string; objectId: string } | null): void;
   updateLabels(center: Cartesian3 | null, altitude: number, occupied: Rect[]): void;
+  /** The camera stopped moving: viewport-bound layers may need a fuller or different answer. */
+  cameraSettled?(): void;
   /** A newer FeedStatus arrived from /api/feeds. */
   noteFeed(feed: FeedStatus): void;
   busy(): boolean;

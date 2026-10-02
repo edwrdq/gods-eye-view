@@ -5,7 +5,7 @@
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import StatusChip from './StatusChip.svelte';
   import { effectiveState } from '../lib/cadence.ts';
-  import { HISTORY_NOTE_LIVE_ONLY } from '../lib/featureWindow.ts';
+  import { HISTORY_NOTE_LIVE_ONLY, HISTORY_NOTE_STATIC, isStatic } from '../lib/featureWindow.ts';
   import { capNote, layerSummary } from '../lib/layerSummary.ts';
   import { layerChip } from '../lib/viewState.ts';
   import { isRendered, layerNoun } from '../lib/layers.ts';
@@ -32,6 +32,7 @@
       layerId: layer.id,
       feedCount: feed?.count ?? 0,
       drawn: run?.drawn ?? 0,
+      lines: run?.lines,
       shown: run?.orbits?.shown,
       at: layer.kind === 'features' && run?.historical ? run.at : null,
     }),
@@ -39,7 +40,7 @@
   const elementsAge = $derived(age);
   const viewing = $derived(timeState.at !== null);
   const chip = $derived(
-    layerChip({ kind: layer.kind, viewing, drawnHistorical: run?.historical === true, currentOnly: run?.currentOnly === true, health, hasData: run?.hasData === true }),
+    layerChip({ kind: layer.kind, viewing, drawnHistorical: run?.historical === true, currentOnly: run?.currentOnly === true, snapshot: isStatic(layer.id), health, hasData: run?.hasData === true }),
   );
 </script>
 
@@ -57,7 +58,9 @@
     </div>
   {:else if on && run && !plain}
     <div class="layer-status">
-      {#if chip === 'current'}
+      {#if chip === 'snapshot'}
+        <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Snapshot</StatusChip>
+      {:else if chip === 'current'}
         <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Current</StatusChip>
       {:else if chip === 'computed'}
         <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Computed</StatusChip>
@@ -72,7 +75,8 @@
       {/if}
       <span class="num">{summary}</span>
       {#if layer.kind === 'orbits' && elementsAge && !viewing}<span class="note">Elements updated {age}</span>{/if}
-      {#if run.currentOnly}<span class="note">{HISTORY_NOTE_LIVE_ONLY}</span>{/if}
+      {#if run.currentOnly}<span class="note">{isStatic(layer.id) ? HISTORY_NOTE_STATIC : HISTORY_NOTE_LIVE_ONLY}</span>{/if}
+      {#if !run.currentOnly && isStatic(layer.id) && age}<span class="note">Data from {age}</span>{/if}
       {#if layer.kind === 'orbits' && viewing && timeState.at !== null}<span class="note">Positions predicted for <span class="mono">{formatClockUtc(timeState.at)}</span></span>{/if}
       {#if run.truncated}<span class="note">{capNote(run.drawn, run.total)}</span>{/if}
     </div>

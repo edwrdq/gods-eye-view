@@ -26,7 +26,7 @@
   ];
   // Star outline on a 40 grid (same points the map marker uses).
   const STAR = '20,4 24.5,15.5 36,20 24.5,24.5 20,36 15.5,24.5 4,20 15.5,15.5';
-  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites'].includes(layer.id));
+  const has = $derived(['earthquakes', 'cyclones', 'launches', 'satellites', 'submarine-cables', 'datacenters', 'installations'].includes(layer.id));
 </script>
 
 {#if has}
@@ -65,6 +65,22 @@
             <span class="item"><svg width={FORECAST_POINT_PX + 2} height={FORECAST_POINT_PX + 2} aria-hidden="true"><rect x="1" y="1" width={FORECAST_POINT_PX} height={FORECAST_POINT_PX} rx="3" class="storm soft" /></svg>Forecast time</span>
             <span class="item"><svg width="26" height="14" aria-hidden="true"><path d="M1 7 L25 1 L25 13 Z" class="cone" /></svg>Likely path of the centre</span>
           </div>
+        {:else if layer.id === 'submarine-cables'}
+          <div class="row">
+            <span class="item"><svg width="26" height="8" aria-hidden="true"><line x1="1" y1="4" x2="25" y2="4" class="line infra" /></svg>Cable route</span>
+            <span class="item"><svg width="16" height="16" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="8" width="24" height="24" rx="3" class="sq solid" /></svg>Landing point</span>
+          </div>
+          <p class="note">Owners and service dates are not in this dataset.</p>
+        {:else if layer.id === 'datacenters'}
+          <div class="row">
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="8" width="24" height="24" rx="3" class="sq solid" /></svg>Data center</span>
+          </div>
+          <p class="note">Only what mappers have tagged; coverage is incomplete.</p>
+        {:else if layer.id === 'installations'}
+          <div class="row">
+            <span class="item"><svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="8" width="24" height="24" rx="3" class="sq hollow" /></svg>Mapped military area</span>
+          </div>
+          <p class="note">Shows where an area is mapped, not what happens there. Biggest areas show first when zoomed out.</p>
         {:else if layer.id === 'launches'}
           <div class="row">
             <span class="item"><svg width={LAUNCH_PX.upcoming} height={LAUNCH_PX.upcoming} viewBox="0 0 40 40" aria-hidden="true"><polygon points={STAR} class="star solid" /></svg>Upcoming</span>
@@ -190,6 +206,22 @@
   }
   .star.hollow.fail {
     stroke: var(--map-hazards);
+  }
+  .line.infra {
+    stroke: var(--map-infrastructure);
+  }
+  .sq {
+    stroke-linejoin: round;
+  }
+  .sq.solid {
+    fill: var(--map-infrastructure);
+    stroke: var(--map-halo);
+    stroke-width: 3;
+  }
+  .sq.hollow {
+    fill: var(--map-halo);
+    stroke: var(--map-infrastructure);
+    stroke-width: 4;
   }
   .cross {
     stroke: var(--map-hazards);

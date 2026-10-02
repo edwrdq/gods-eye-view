@@ -2,7 +2,7 @@ import type { LayerKind } from '@gev/shared';
 import type { Health } from './cadence.ts';
 
 /** What a status chip says. Every place that shows live or recorded state draws it from here. */
-export type ChipKind = 'live' | 'recorded' | 'computed' | 'current' | 'stale' | 'error' | 'waiting';
+export type ChipKind = 'snapshot' | 'live' | 'recorded' | 'computed' | 'current' | 'stale' | 'error' | 'waiting';
 
 /**
  * The global freshness chip in the status bar. While a past time is viewed the
@@ -26,12 +26,15 @@ export interface LayerChipInput {
   drawnHistorical: boolean;
   /** Features layer that only knows the present. */
   currentOnly: boolean;
+  /** A bundled dataset: shown as a snapshot whatever the time. */
+  snapshot?: boolean;
   health: Health | null;
   hasData: boolean;
 }
 
 /** The state chip of a layer row. Viewing a past time wins over feed health: that health is about now. */
 export function layerChip(i: LayerChipInput): ChipKind {
+  if (i.snapshot) return 'snapshot';
   if (i.currentOnly) return 'current';
   if (i.kind === 'orbits' && i.viewing) return 'computed';
   if (i.viewing || i.drawnHistorical) return 'recorded';

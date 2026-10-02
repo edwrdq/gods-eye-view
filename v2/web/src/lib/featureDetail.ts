@@ -47,6 +47,10 @@ export function featureTimeNote(layer: string, t: number, now: number, historica
       const eta = launchEta(t, now);
       return eta.startsWith('T-') ? `Launch ${eta}` : `Launched ${eta}`;
     }
+    case 'submarine-cables':
+    case 'datacenters':
+    case 'installations':
+      return 'From a bundled snapshot';
     case 'cyclones':
       return `Position ${formatAge(now - t)}`;
     default:

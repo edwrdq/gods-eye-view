@@ -89,6 +89,12 @@ export function layerNoun(layerId: string, count: number): string {
       return count === 1 ? 'launch' : 'launches';
     case 'satellites':
       return count === 1 ? 'satellite' : 'satellites';
+    case 'submarine-cables':
+      return count === 1 ? 'feature' : 'cables and landing points';
+    case 'datacenters':
+      return count === 1 ? 'data center' : 'data centers';
+    case 'installations':
+      return count === 1 ? 'mapped site' : 'mapped sites';
     default:
       return count === 1 ? 'object' : 'objects';
   }

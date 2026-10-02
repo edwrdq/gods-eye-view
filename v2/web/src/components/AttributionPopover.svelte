@@ -1,11 +1,14 @@
 <script lang="ts">
   import { getCredits, onCreditsChange } from '../state/globe.svelte.ts';
   import type { Credit } from '../globe/index.ts';
+  import { creditsFor } from '../lib/dataCredits.ts';
+  import { layerStore } from '../state/layers.svelte.ts';
 
   let { onClose }: { onClose: () => void } = $props();
   let credits = $state<Credit[]>(getCredits());
 
   $effect(() => onCreditsChange(() => (credits = getCredits())));
+  const dataCredits = $derived(creditsFor(layerStore.enabled));
 </script>
 
 <div class="popover" role="dialog" aria-label="Imagery and data attribution">
@@ -16,6 +19,13 @@
     <ul>
       {#each credits as c}
         <li>{@html c.html}</li>
+      {/each}
+    </ul>
+  {/if}
+  {#if dataCredits.length > 0}
+    <ul class="data">
+      {#each dataCredits as d (d.layer)}
+        <li><strong>{d.lead}:</strong> {d.text} <a href={d.link.href} target="_blank" rel="noopener noreferrer">{d.link.label}</a> ({d.licence})</li>
       {/each}
     </ul>
   {/if}
@@ -56,6 +66,19 @@
     max-height: 24px;
     width: auto;
     vertical-align: middle;
+  }
+  .data {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-subtle);
+  }
+  .data strong {
+    color: var(--text-primary);
+    font-weight: var(--weight-medium);
+  }
+  .data a {
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
   .empty,
   .foot {

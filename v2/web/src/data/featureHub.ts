@@ -1,3 +1,4 @@
+import type { BBox } from '@gev/shared';
 import type { ApiConfig } from '../api/index.ts';
 import type { FromFeatureWorker, ToFeatureWorker } from './featureProtocol.ts';
 
@@ -18,9 +19,9 @@ export class FeatureHub {
   }
 
   /** Returns the sequence number the answer will carry. */
-  fetch(layer: string, window: { from?: number; to?: number }): number {
+  fetch(layer: string, window: { from?: number; to?: number }, bbox?: BBox): number {
     const seq = ++this.seq;
-    this.post({ type: 'fetch', layer, seq, from: window.from, to: window.to });
+    this.post({ type: 'fetch', layer, seq, from: window.from, to: window.to, bbox });
     return seq;
   }
 

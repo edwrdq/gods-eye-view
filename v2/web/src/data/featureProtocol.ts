@@ -1,11 +1,11 @@
-import type { FeedStatus } from '@gev/shared';
+import type { BBox, FeedStatus } from '@gev/shared';
 import type { ApiConfig, ApiFailure } from '../api/index.ts';
 import type { FeaturePack } from '../lib/geometryPack.ts';
 
 export type ToFeatureWorker =
   | { type: 'init'; api: ApiConfig }
   /** Fetch a layer's features and answer with `features` or `failed`. A newer fetch for the layer supersedes an older one. */
-  | { type: 'fetch'; layer: string; seq: number; from?: number; to?: number }
+  | { type: 'fetch'; layer: string; seq: number; from?: number; to?: number; bbox?: BBox }
   | { type: 'drop'; layer: string };
 
 export interface FeaturesMessage {

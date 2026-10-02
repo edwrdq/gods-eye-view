@@ -6,7 +6,10 @@ import path from 'node:path';
 import type { ApiError, ElementsResponse, FeatureDetail, FeaturesResponse, FeedsResponse } from '@gev/shared';
 import { createApp } from './app.ts';
 import { openDb } from './db/index.ts';
+import { CablesFeed } from './feeds/cables/feed.ts';
 import { CyclonesFeed } from './feeds/cyclones/feed.ts';
+import { DatacentersFeed } from './feeds/datacenters/feed.ts';
+import { InstallationsFeed } from './feeds/installations/feed.ts';
 import { EarthquakesFeed } from './feeds/earthquakes/feed.ts';
 import { LaunchesFeed } from './feeds/launches/feed.ts';
 import { FeedManager } from './feeds/manager.ts';
@@ -40,6 +43,9 @@ function setup(opts: { enabled?: string[]; maxFeatures?: number; storms?: boolea
   if (enabled.has('earthquakes')) feeds.push(new EarthquakesFeed({ ...base, repo: db.features }));
   if (enabled.has('cyclones')) feeds.push(new CyclonesFeed(base));
   if (enabled.has('launches')) feeds.push(new LaunchesFeed(base));
+  if (enabled.has('cables')) feeds.push(Object.assign(new CablesFeed({ now: c.now }), { idle: async () => {} }));
+  if (enabled.has('datacenters')) feeds.push(Object.assign(new DatacentersFeed({ now: c.now }), { idle: async () => {} }));
+  if (enabled.has('installations')) feeds.push(Object.assign(new InstallationsFeed({ now: c.now }), { idle: async () => {} }));
   if (enabled.has('satellites')) feeds.push(new SatellitesFeed({ ...base, cacheDir: dir, groups: ['stations', 'visual'], sleep: async () => {} }));
   const manager = new FeedManager({ feeds, definitions: FEED_DEFINITIONS, repo: db.observations, retentionMs: 86_400_000, now: c.now, timers: manualTimers });
   const app = createApp({
@@ -252,5 +258,56 @@ test('disabled feeds and planned layers answer 409', async () => {
     assert.equal((await s.get('/api/layers/earthquakes/features')).status, 200);
   } finally {
     await s.cleanup();
+  }
+});
+
+test('static infrastructure layers: features, bbox, truncation, detail, and 409 when not enabled', async () => {
+  const s = setup({ enabled: ['cables', 'datacenters', 'installations'] });
+  try {
+    await s.startAll();
+    const feeds = (await s.get<FeedsResponse>('/api/feeds')).body.feeds;
+    for (const id of ['submarine-cables', 'datacenters', 'installations']) assert.equal(feeds.find((f) => f.layer === id)!.state, 'live', id);
+
+    const dc = await s.get<FeaturesResponse>('/api/layers/datacenters/features?bbox=-77.7,38.9,-77.3,39.1');
+    assert.equal(dc.status, 200);
+    assert.equal(dc.body.truncated, false);
+    assert.ok(dc.body.features.length > 20);
+    const first = dc.body.features[0]!;
+    const detail = await s.get<FeatureDetail>(`/api/layers/datacenters/features/${first.id}`);
+    assert.equal(detail.status, 200);
+    assert.equal(detail.body.featureId, first.id);
+    assert.equal(detail.body.sections.at(-1)!.title, 'Source');
+
+    const world = await s.get<FeaturesResponse>('/api/layers/installations/features');
+    assert.equal(world.body.truncated, true);
+    assert.equal(world.body.features.length, 3000);
+    // the app-level cap still applies on top of the layer's own
+    const capped = setup({ enabled: ['installations'], maxFeatures: 50 });
+    try {
+      await capped.startAll();
+      const r = await capped.get<FeaturesResponse>('/api/layers/installations/features');
+      assert.equal(r.body.features.length, 50);
+      assert.equal(r.body.truncated, true);
+    } finally {
+      await capped.cleanup();
+    }
+
+    const cables = await s.get<FeaturesResponse>('/api/layers/submarine-cables/features?bbox=-76.5,36.5,-75,37.5');
+    assert.ok(cables.body.features.some((f) => f.id === 'cable:marea' && f.geometry.type === 'MultiLineString'));
+    const cd = await s.get<FeatureDetail>('/api/layers/submarine-cables/features/cable:marea');
+    assert.equal(cd.status, 200);
+    assert.match(cd.body.sources.join(' '), /TeleGeography/);
+
+    assert.equal((await s.get<ApiError>('/api/layers/installations/features/nope')).status, 404);
+    assert.equal((await s.get<ApiError>('/api/layers/installations/snapshot')).status, 404); // features-kind layer
+    assert.equal((await s.get<ApiError>('/api/layers/datacenters/features?bbox=1,2,3')).status, 400);
+  } finally {
+    await s.cleanup();
+  }
+  const off = setup({ enabled: ['earthquakes'] });
+  try {
+    assert.equal((await off.get<ApiError>('/api/layers/datacenters/features')).status, 409);
+  } finally {
+    await off.cleanup();
   }
 });

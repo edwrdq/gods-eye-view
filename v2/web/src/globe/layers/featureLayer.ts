@@ -1,7 +1,7 @@
 import type { LayerCategory } from '@gev/shared';
 import { cycloneLabel, cycloneSize, FORECAST_POINT_PX, LAUNCH_PX, launchEta, launchState } from '../../lib/featureStyle.ts';
 import { NO_CODE, splitIds, type FeaturePack } from '../../lib/geometryPack.ts';
-import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE } from '../../lib/markerStyle.ts';
+import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, markerVariantFor } from '../../lib/markerStyle.ts';
 import { quakeStyle } from '../../lib/quakeStyle.ts';
 import { launchCanvas, markerCanvas, quakeCanvas, stormCanvas } from './markers.ts';
 import { LabelPool } from './labelPool.ts';
@@ -127,8 +127,10 @@ export class FeatureLayer {
       }
       default: {
         const shape = CATEGORY_SHAPE[this.category];
-        const m = markerCanvas(shape, color);
-        return { key: m.key, canvas: () => m.canvas, px: 20, label, alwaysLabel: false };
+        // Infrastructure layers share a shape and hue; form tells them apart: solid square for
+        // data centers, hollow (outline) for mapped military areas, a smaller one for cable landings.
+        const m = markerCanvas(shape, color, markerVariantFor(this.layer));
+        return { key: m.key, canvas: () => m.canvas, px: this.layer === 'submarine-cables' ? 14 : 20, label, alwaysLabel: false };
       }
     }
   }
@@ -143,6 +145,9 @@ export class FeatureLayer {
         kind === 'dash'
           ? C.Material.fromType('PolylineDash', { color, gapColor: C.Color.TRANSPARENT, dashLength: 14 })
           : C.Material.fromType('Color', { color });
+      // Many polylines share one material, and removing a polyline destroys its material: the
+      // second removal would throw (and a rebuilt layer would reuse a destroyed one). Keep it alive.
+      (m as { destroy: () => void }).destroy = () => undefined;
       this.materials.set(key, m);
     }
     return m;

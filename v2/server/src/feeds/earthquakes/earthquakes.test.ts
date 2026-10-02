@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { openDb } from '../../db/index.ts';
 import { clock, manualTimers } from '../test-utils.ts';
 import { buildQuakeDetail } from './detail.ts';
-import { EarthquakesFeed, EARTHQUAKES_FRESHNESS_MS, USGS_URL } from './feed.ts';
+import { EarthquakesFeed, EARTHQUAKES_FRESHNESS_MS, USGS_BACKFILL_URL, USGS_URL } from './feed.ts';
 import { parseUsgs, quakeLabel } from './parse.ts';
 
 type Json = { metadata: { generated: number; count: number }; features: Array<{ id: string; properties: Record<string, any>; geometry: { type: string; coordinates: number[] } }> };
@@ -59,7 +59,7 @@ test('edge cases: null magnitude, bad coordinates, duplicates and flags', () => 
   assert.deepEqual(parseUsgs({ features: [] }).rows, []);
 });
 
-function setup(responses: Array<() => Response | Promise<Response>>, opts: { retentionDays?: number } = {}) {
+function setup(responses: Array<() => Response | Promise<Response>>, opts: { retentionDays?: number; backfill?: boolean } = {}) {
   const c = clock(GENERATED + 60_000);
   const db = openDb(':memory:');
   const calls: Array<{ url: string; headers: Record<string, string> }> = [];
@@ -72,6 +72,7 @@ function setup(responses: Array<() => Response | Promise<Response>>, opts: { ret
     repo: db.features,
     now: c.now,
     timers: manualTimers,
+    backfill: false,
     ...opts,
   });
   return { feed, c, db, calls };
@@ -282,4 +283,140 @@ test('detail still renders sparse events (no felt/network fields)', () => {
   const labels = d.sections.flatMap((s) => s.rows.map((x) => x.label));
   assert.ok(!labels.includes('Felt reports'));
   assert.ok(labels.includes('Coordinates'));
+});
+
+// ---------------------------------------------------------------- first-run backfill
+
+/** A month of events: the day feed's events plus older ones (ids prefixed so they are distinct). */
+function monthFixture(olderDays: number[]): Json {
+  const j = fixture();
+  const base = j.features[0]!;
+  for (const [i, d] of olderDays.entries()) {
+    const copy = JSON.parse(JSON.stringify(base)) as Json['features'][number];
+    copy.id = `old${i}`;
+    copy.properties.time = GENERATED - d * 86_400_000;
+    copy.properties.updated = copy.properties.time + 3_600_000;
+    copy.properties.mag = 4 + i / 10;
+    j.features.push(copy);
+  }
+  return j;
+}
+
+function urlRouter(routes: { day: () => Response; month: () => Response }) {
+  const calls: string[] = [];
+  return {
+    calls,
+    respond: (url: string) => {
+      calls.push(url);
+      if (url === USGS_BACKFILL_URL) return routes.month();
+      return routes.day();
+    },
+  };
+}
+
+function backfillSetup(opts: { retentionDays?: number; existing?: boolean; month?: () => Response }) {
+  const router = urlRouter({ day: () => body(fixture()), month: opts.month ?? (() => body(monthFixture([3, 10, 20, 29, 45]))) });
+  const c = clock(GENERATED + 60_000);
+  const db = openDb(':memory:');
+  if (opts.existing) {
+    db.features.upsertMany('earthquakes', [{ id: 'kept', t: GENERATED - 5 * 86_400_000, updated: GENERATED, lon: 1, lat: 2, rank: 4, label: 'M 4.0', props: { mag: 4 }, extra: {} }]);
+  }
+  const feed = new EarthquakesFeed({ fetch: async (u) => router.respond(u), repo: db.features, now: c.now, timers: manualTimers, retentionDays: opts.retentionDays });
+  return { feed, db, router, c };
+}
+
+test('backfill: an empty history is seeded once from the month feed, after the live poll', async () => {
+  const { feed, db, router, c } = backfillSetup({});
+  feed.start();
+  await feed.idle();
+  assert.deepEqual(router.calls, [USGS_URL, USGS_BACKFILL_URL]);
+  assert.match(USGS_BACKFILL_URL, /summary\/2\.5_month\.geojson$/);
+  // 11 live events + the 5 older ones
+  assert.equal(db.features.count('earthquakes'), 16);
+  // reaches back past the day window
+  const month = feed.features('earthquakes', { from: GENERATED - 30 * 86_400_000, to: GENERATED + 60_000, limit: 100 });
+  assert.equal(month.features.length, 15, 'everything but the 45 day old event');
+  assert.equal(feed.features('earthquakes', { limit: 100 }).features.length, 11, 'the default 24 h window is unchanged');
+  assert.equal(feed.status().state, 'live');
+  // later polls never ask again
+  for (let i = 0; i < 2; i++) {
+    c.advance(61_000);
+    await feed.tick();
+  }
+  assert.equal(router.calls.filter((u) => u === USGS_BACKFILL_URL).length, 1);
+});
+
+test('backfill: never runs when history already exists (also across a restart)', async () => {
+  const a = backfillSetup({ existing: true });
+  a.feed.start();
+  await a.feed.idle();
+  assert.deepEqual(a.router.calls, [USGS_URL]);
+  assert.equal(a.db.features.count('earthquakes'), 12);
+
+  // First run seeds, a "restart" on the same database does not repeat it.
+  const first = backfillSetup({});
+  first.feed.start();
+  await first.feed.idle();
+  await first.feed.stop();
+  const router2 = urlRouter({ day: () => body(fixture()), month: () => body(monthFixture([2, 4])) });
+  const again = new EarthquakesFeed({ fetch: async (u) => router2.respond(u), repo: first.db.features, now: first.c.now, timers: manualTimers });
+  again.start();
+  await again.idle();
+  assert.deepEqual(router2.calls, [USGS_URL]);
+  assert.equal(first.db.features.count('earthquakes'), 16);
+});
+
+test('backfill: EARTHQUAKES_BACKFILL off skips it; retention bounds what is stored; revisions already stored win', async () => {
+  const off = backfillSetup({});
+  const offFeed = new EarthquakesFeed({ fetch: async (u) => (off.router.calls.push(u), body(fixture())), repo: off.db.features, now: off.c.now, timers: manualTimers, backfill: false });
+  offFeed.start();
+  await offFeed.idle();
+  assert.deepEqual(off.router.calls, [USGS_URL]);
+
+  const short = backfillSetup({ retentionDays: 15 });
+  short.feed.start();
+  await short.feed.idle();
+  // 45, 29 and 20 days old are beyond a 15 day retention; 3 and 10 days stay
+  assert.deepEqual(['old0', 'old1'].map((id) => short.db.features.get('earthquakes', id) !== null), [true, true]);
+  assert.equal(short.db.features.get('earthquakes', 'old4'), null);
+  assert.equal(short.db.features.get('earthquakes', 'old3'), null);
+  assert.equal(short.db.features.count('earthquakes'), 13);
+
+  // The month feed carries an older copy of a live event: the newer stored revision is kept.
+  const month = monthFixture([]);
+  month.features[0]!.properties.mag = 3.0;
+  month.features[0]!.properties.updated -= 600_000;
+  const r = backfillSetup({ month: () => body(month) });
+  r.feed.start();
+  await r.feed.idle();
+  assert.equal(r.db.features.get('earthquakes', fixture().features[0]!.id)!.props.mag, 5.1);
+});
+
+test('backfill: a failed month request is retried on later polls, at most three times in all, and never blocks live data', async () => {
+  let n = 0;
+  const { feed, db, router, c } = backfillSetup({ month: () => (n++ < 2 ? new Response('busy', { status: 503 }) : body(monthFixture([7]))) });
+  feed.start();
+  await feed.idle();
+  assert.equal(feed.status().state, 'live', 'the live feed is fine while the backfill fails');
+  assert.equal(db.features.count('earthquakes'), 11);
+  c.advance(61_000);
+  await feed.tick();
+  assert.equal(db.features.count('earthquakes'), 11);
+  c.advance(61_000);
+  await feed.tick();
+  assert.equal(db.features.count('earthquakes'), 12, 'third attempt succeeded');
+  c.advance(61_000);
+  await feed.tick();
+  assert.equal(router.calls.filter((u) => u === USGS_BACKFILL_URL).length, 3);
+
+  // Three failures: give up for this run.
+  const dead = backfillSetup({ month: () => new Response('no', { status: 500 }) });
+  dead.feed.start();
+  await dead.feed.idle();
+  for (let i = 0; i < 5; i++) {
+    dead.c.advance(61_000);
+    await dead.feed.tick();
+  }
+  assert.equal(dead.router.calls.filter((u) => u === USGS_BACKFILL_URL).length, 3);
+  assert.equal(dead.feed.status().state, 'live');
 });

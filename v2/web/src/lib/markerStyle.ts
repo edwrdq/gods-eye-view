@@ -43,7 +43,7 @@ export type MarkerVariant = 'standard' | 'military';
 
 /** Which layers use a non-standard variant. */
 export function markerVariantFor(layerId: string): MarkerVariant {
-  return layerId === 'military-flights' ? 'military' : 'standard';
+  return layerId === 'military-flights' || layerId === 'installations' ? 'military' : 'standard';
 }
 
 /** Cache key for a marker image. */

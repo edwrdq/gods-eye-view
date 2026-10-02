@@ -26,6 +26,8 @@ export interface LayerRunState {
   historical: boolean;
   /** Objects drawn. */
   drawn: number;
+  /** Features layers: how many of the drawn features are lines (cables). */
+  lines?: number;
   error: { failure: ApiFailure; message: string } | null;
   /**
    * Features layers: the layer only knows the present, so while a past time is

@@ -79,6 +79,9 @@ test('GET /api/feeds lists every implemented layer with its state', async () => 
     ['cyclones', 'off'],
     ['launches', 'off'],
     ['satellites', 'off'],
+    ['submarine-cables', 'off'],
+    ['datacenters', 'off'],
+    ['installations', 'off'],
   ]);
   flights.start();
   await flights.idle();

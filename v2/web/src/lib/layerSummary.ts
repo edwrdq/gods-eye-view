@@ -7,6 +7,8 @@ export interface SummaryInput {
   feedCount: number;
   /** Primitives of the layer drawn (features), or satellites loaded. */
   drawn: number;
+  /** Drawn features that are lines (cables). */
+  lines?: number;
   /** Satellites shown after the group filter. */
   shown?: number;
   /** Viewed instant when not live. */
@@ -33,6 +35,12 @@ export function layerSummary(i: SummaryInput): string {
   switch (i.layerId) {
     case 'cyclones':
       return i.feedCount === 0 ? 'No active storms' : `${n(i.feedCount)} ${layerNoun('cyclones', i.feedCount)}`;
+    case 'submarine-cables': {
+      const cables = i.lines ?? 0;
+      const landings = Math.max(0, i.drawn - cables);
+      if (i.drawn === 0) return 'No cables in view';
+      return `${n(cables)} ${cables === 1 ? 'cable' : 'cables'} · ${n(landings)} landing ${landings === 1 ? 'point' : 'points'}`;
+    }
     case 'satellites': {
       if (i.drawn === 0) return 'Waiting for orbital elements';
       const shown = i.shown ?? i.drawn;
