@@ -1,4 +1,4 @@
-import { MAP_HALO, MAP_SELECTION, markerKey, shapePoints, type MarkerShape } from '../../lib/markerStyle.ts';
+import { MAP_HALO, MAP_SELECTION, markerKey, shapePoints, type MarkerShape, type MarkerVariant } from '../../lib/markerStyle.ts';
 
 /** Marker images are drawn once per (shape, colour) and shared by every billboard through the texture atlas. */
 const SIZE = 40;
@@ -18,8 +18,8 @@ function pathFor(ctx: CanvasRenderingContext2D, shape: MarkerShape): void {
   }
 }
 
-export function markerCanvas(shape: MarkerShape, color: string): { key: string; canvas: HTMLCanvasElement } {
-  const key = markerKey(shape, color);
+export function markerCanvas(shape: MarkerShape, color: string, variant: MarkerVariant = 'standard'): { key: string; canvas: HTMLCanvasElement } {
+  const key = markerKey(shape, color, variant);
   let canvas = cache.get(key);
   if (!canvas) {
     canvas = document.createElement('canvas');
@@ -28,7 +28,8 @@ export function markerCanvas(shape: MarkerShape, color: string): { key: string; 
     const ctx = canvas.getContext('2d')!;
     ctx.lineJoin = 'round';
     pathFor(ctx, shape);
-    if (shape === 'ring') {
+    if (shape === 'ring' || variant === 'military') {
+      // Outline only: dark halo under and the hue on top, so it stays legible on any imagery.
       ctx.strokeStyle = MAP_HALO;
       ctx.lineWidth = 7;
       ctx.stroke();

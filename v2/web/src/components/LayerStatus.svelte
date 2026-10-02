@@ -60,7 +60,7 @@
     </div>
   {/if}
 {:else if on && layer.status === 'available'}
-  <div class="layer-status"><span>On. Drawing this layer arrives in a later phase.</span></div>
+  <div class="layer-status"><span>On. Drawing this layer arrives in a later step.</span></div>
 {/if}
 
 <style>

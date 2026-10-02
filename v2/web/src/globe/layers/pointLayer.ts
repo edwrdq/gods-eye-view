@@ -1,6 +1,6 @@
 import type { LayerCategory } from '@gev/shared';
 import { SlotMirror, type UpdatePacket, type UpsertSink } from '../../data/slots.ts';
-import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, rotatesWithHeading } from '../../lib/markerStyle.ts';
+import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, rotatesWithHeading, type MarkerVariant } from '../../lib/markerStyle.ts';
 import { markerCanvas } from './markers.ts';
 
 type Cesium = typeof import('cesium');
@@ -16,6 +16,8 @@ const MARKER_SCALE = 0.5; // marker images are drawn at 2x for sharpness
 export interface PointLayerOptions {
   layer: string;
   category: LayerCategory;
+  /** Marker treatment within the category; default 'standard'. */
+  variant?: MarkerVariant;
   /** Most labels shown at once. */
   labelCap?: number;
 }
@@ -55,7 +57,7 @@ export class PointLayer {
     this.labelCap = opts.labelCap ?? 60;
     const shape = CATEGORY_SHAPE[opts.category];
     this.rotates = rotatesWithHeading(shape);
-    const { key, canvas } = markerCanvas(shape, CATEGORY_MAP_COLOR[opts.category]);
+    const { key, canvas } = markerCanvas(shape, CATEGORY_MAP_COLOR[opts.category], opts.variant);
     this.imageKey = key;
     this.canvas = canvas;
     this.billboards = scene.primitives.add(new Cesium.BillboardCollection({ scene, blendOption: Cesium.BlendOption.TRANSLUCENT }));

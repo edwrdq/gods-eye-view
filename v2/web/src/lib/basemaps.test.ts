@@ -4,6 +4,8 @@ import {
   BASE_MAPS,
   availability,
   defaultBaseMap,
+  GIBS_FIRST_DATE,
+  gibsDateForTime,
   gibsDefaultDate,
   parseChoice,
   serializeChoice,
@@ -68,4 +70,13 @@ test('GIBS date validation', () => {
   assert.equal(validateGibsDate('2015-11-23', now), null);
   assert.equal(validateGibsDate('2026-02-30', now), null);
   assert.equal(validateGibsDate('yesterday', now), null);
+});
+
+test('gibsDateForTime maps a viewed instant to its UTC day inside the archive', () => {
+  const now = new Date('2026-10-02T12:00:00Z');
+  assert.equal(gibsDateForTime(Date.parse('2026-10-01T23:59:59Z'), now), '2026-10-01');
+  assert.equal(gibsDateForTime(Date.parse('2026-09-28T00:00:00Z'), now), '2026-09-28');
+  // Today's mosaic is incomplete: hold at the latest complete day.
+  assert.equal(gibsDateForTime(Date.parse('2026-10-02T08:00:00Z'), now), '2026-10-01');
+  assert.equal(gibsDateForTime(Date.parse('2010-01-01T00:00:00Z'), now), GIBS_FIRST_DATE);
 });

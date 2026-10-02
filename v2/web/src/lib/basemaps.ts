@@ -159,3 +159,13 @@ export function validateGibsDate(value: string, now: Date = new Date()): string 
   if (value < GIBS_FIRST_DATE || value > gibsDefaultDate(now)) return null;
   return value;
 }
+
+/**
+ * The imagery day for a viewed instant: its UTC day, held inside the archive
+ * (today's mosaic is incomplete, so "today" shows the latest complete day).
+ */
+export function gibsDateForTime(at: number, now: Date = new Date()): string {
+  const day = isoDay(at);
+  const latest = gibsDefaultDate(now);
+  return day > latest ? latest : day < GIBS_FIRST_DATE ? GIBS_FIRST_DATE : day;
+}

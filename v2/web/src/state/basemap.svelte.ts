@@ -2,6 +2,7 @@ import {
   BASEMAP_STORAGE_KEY,
   availability,
   getBaseMap,
+  gibsDateForTime,
   gibsDefaultDate,
   parseChoice,
   serializeChoice,
@@ -10,8 +11,10 @@ import {
   type BaseMapId,
   type MapKeys,
 } from '../lib/basemaps.ts';
+import { debounce } from '../lib/debounce.ts';
 import { readStored, writeStored } from '../lib/storage.ts';
 import type { BaseMapRequest, Globe } from '../globe/types.ts';
+import { onTimeCommit, timeState } from './time.svelte.ts';
 
 /** What the picker shows. The Globe applies it; this store never touches Cesium. */
 export const basemap = $state<{
@@ -20,12 +23,14 @@ export const basemap = $state<{
   flatTerrain: boolean;
   /** Day for dated sources (UTC, YYYY-MM-DD). Not persisted: it starts at the latest complete day. */
   date: string;
+  /** The date comes from the time slider (history view) rather than the picker. */
+  followingTime: boolean;
   busy: boolean;
   /** Last request that could not be honoured, in plain words. Cleared by the next change. */
   error: string | null;
   /** A fallback is on screen (for example Esri was unreachable). */
   note: string | null;
-}>({ id: 'esri', buildings: false, flatTerrain: false, date: gibsDefaultDate(), busy: false, error: null, note: null });
+}>({ id: 'esri', buildings: false, flatTerrain: false, date: gibsDefaultDate(), followingTime: false, busy: false, error: null, note: null });
 
 let globe: Globe | null = null;
 let keys: MapKeys = { googleMapsApiKey: null, cesiumIonToken: null };
@@ -97,6 +102,7 @@ export function selectBaseMap(id: BaseMapId) {
   if (id === basemap.id || !availability(id, keys).available) return;
   const previous = choice();
   basemap.id = id;
+  syncOnSelect();
   void commit(previous);
 }
 
@@ -114,7 +120,7 @@ export function setFlatTerrain(on: boolean) {
   void commit(previous);
 }
 
-/** Phase 2's time slider calls this to drive dated imagery. Invalid days are ignored. */
+/** Set the imagery day (picker or time slider). Invalid days are ignored; no-op when unchanged. */
 export function setBaseMapDate(date: string) {
   const ok = validateGibsDate(date);
   if (!ok || ok === basemap.date) return;
@@ -127,4 +133,35 @@ export function setBaseMapDate(date: string) {
     basemap.busy = false;
     basemap.error = out.error;
   });
+}
+
+// --- the time slider drives dated imagery
+
+/** Apply the slider's day to the imagery date: history shows that UTC day, live restores the latest complete day. */
+function followTime(at: number | null): void {
+  if (at === null) {
+    if (!basemap.followingTime) return;
+    basemap.followingTime = false;
+    setBaseMapDate(gibsDefaultDate());
+    return;
+  }
+  basemap.followingTime = true;
+  setBaseMapDate(gibsDateForTime(at));
+}
+
+// Playback and dragging commit often; the imagery only needs to move when the day changes, and then only once things settle.
+const followTimeSoon = debounce(followTime, 400);
+onTimeCommit((at) => {
+  if (at === null) {
+    followTimeSoon.cancel();
+    followTime(null);
+  } else followTimeSoon(at);
+});
+
+/** Choosing GIBS while viewing history starts on the viewed day. */
+function syncOnSelect(): void {
+  if (basemap.id !== 'gibs' || timeState.at === null) return;
+  // Set silently: the base-map change that follows loads the imagery for this date.
+  basemap.date = gibsDateForTime(timeState.at);
+  basemap.followingTime = true;
 }

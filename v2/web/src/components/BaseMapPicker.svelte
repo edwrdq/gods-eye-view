@@ -13,6 +13,7 @@
     type BaseMapId,
   } from '../lib/basemaps.ts';
   import { basemap, keysFor, selectBaseMap, setBaseMapDate, setBuildings, setFlatTerrain } from '../state/basemap.svelte.ts';
+  import { clock } from '../state/clock.svelte.ts';
   import { layerStore } from '../state/layers.svelte.ts';
 
   let open = $state(false);
@@ -27,7 +28,8 @@
   );
   const buildingsOff = $derived(!keys.cesiumIonToken || Boolean(current?.tiles3d));
   const terrainOff = $derived(Boolean(current?.tiles3d));
-  const latest = gibsDefaultDate();
+  // Re-evaluated as the clock ticks so "Latest" stays right across UTC midnight.
+  const latest = $derived((clock.now, gibsDefaultDate()));
 
   async function toggle() {
     open = !open;
@@ -83,7 +85,7 @@
     <IconButton
       class="trigger"
       label="Base map"
-      title={`Base map: ${current?.label ?? ''}`}
+      title={`Base map: ${current?.label ?? ''}${current?.dated ? ` (${basemap.date})` : ''}`}
       aria-haspopup="dialog"
       aria-expanded={open}
       aria-controls="basemap-popover"
@@ -129,9 +131,12 @@
             {#if o.dated && checked}
               <div class="date">
                 <label for="bm-date">Date (UTC)</label>
-                <input id="bm-date" type="date" class="num" value={basemap.date} min={GIBS_FIRST_DATE} max={latest} onchange={onDate} />
-                <button type="button" class="link" disabled={basemap.date === latest} onclick={() => setBaseMapDate(latest)}>Latest</button>
+                <input id="bm-date" type="date" class="num" value={basemap.date} min={GIBS_FIRST_DATE} max={latest} disabled={basemap.followingTime} onchange={onDate} />
+                <button type="button" class="link" disabled={basemap.followingTime || basemap.date === latest} onclick={() => setBaseMapDate(latest)}>Latest</button>
               </div>
+              {#if basemap.followingTime}
+                <p class="date-note">Following the time slider. Return to live to pick a day.</p>
+              {/if}
             {/if}
           </div>
         {/each}
@@ -301,6 +306,16 @@
     border-radius: var(--radius-sm);
     color: var(--text-primary);
     color-scheme: dark light;
+  }
+  .date-note {
+    padding: 0 var(--space-3) var(--space-3) calc(var(--space-3) + 16px + var(--space-3));
+    margin-top: calc(var(--space-2) * -1);
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+  }
+  .date input:disabled {
+    color: var(--text-secondary);
+    border-style: dashed;
   }
   .link {
     color: var(--accent);

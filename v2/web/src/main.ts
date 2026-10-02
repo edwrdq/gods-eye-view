@@ -1,10 +1,12 @@
 import { mount } from 'svelte';
-import './styles/fonts.css';
+import { installFonts } from './styles/fonts.ts';
 import './styles/tokens.css';
 import './styles/base.css';
 import App from './App.svelte';
 import { configureApi } from './api/index.ts';
 import { currentFlags } from './lib/flags.ts';
+
+installFonts();
 
 // Fixture mode (development only) applies to this thread as well as the snapshot worker.
 configureApi(currentFlags());

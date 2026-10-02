@@ -7,6 +7,7 @@
   import History from '@lucide/svelte/icons/history';
   import MousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
   import Route from '@lucide/svelte/icons/route';
+  import Triangle from '@lucide/svelte/icons/triangle';
   import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
   import X from '@lucide/svelte/icons/x';
   import CategoryIcon from './CategoryIcon.svelte';
@@ -31,12 +32,21 @@
 
   const text = (v: PropValue): string => (v === null || v === '' ? '—' : typeof v === 'boolean' ? (v ? 'Yes' : 'No') : typeof v === 'number' ? v.toLocaleString('en-US') : v);
 
+  // Military aircraft are a separate layer; the flag on the observation covers a civil layer that carries one.
+  const military = $derived(selection.ref?.layer === 'military-flights' || detail?.observation.props.military === true);
+
   /** Provenance is always last: add a Source section when the server did not send one. */
   const sections = $derived.by((): DetailSection[] => {
     if (!detail) return [];
-    if (detail.sections.some((s) => s.title.toLowerCase() === 'source')) return detail.sections;
+    let base = detail.sections;
+    if (military && !base.some((s) => s.rows.some((r) => r.label.toLowerCase() === 'class'))) {
+      const i = base.findIndex((s) => s.title.toLowerCase() !== 'position');
+      const row = { label: 'Class', value: 'Military aircraft', hint: 'flagged in ADS-B data' };
+      base = i >= 0 ? base.map((s, j) => (j === i ? { ...s, rows: [row, ...s.rows] } : s)) : [...base, { title: 'Aircraft', rows: [row] }];
+    }
+    if (base.some((s) => s.title.toLowerCase() === 'source')) return base;
     return [
-      ...detail.sections,
+      ...base,
       {
         title: 'Source',
         rows: [
@@ -97,6 +107,7 @@
       </button>
     </div>
     <div class="fresh">
+      {#if military}<StatusChip tone="neutral"><Triangle size={12} strokeWidth={2} aria-hidden="true" />Military</StatusChip>{/if}
       {#if notInFeed}
         <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />{historical ? 'Not recorded' : 'Not in feed'}</StatusChip>
         <span class="meta num">Last seen {formatAge(clock.now - detail.observation.t)}</span>
@@ -239,6 +250,7 @@
     align-items: center;
     gap: var(--space-3);
     padding: 0 var(--space-5) var(--space-4);
+    flex-wrap: wrap;
   }
   .meta {
     font-size: var(--text-xs);

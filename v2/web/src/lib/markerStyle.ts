@@ -34,9 +34,21 @@ export function rotatesWithHeading(shape: MarkerShape): boolean {
   return shape === 'triangle' || shape === 'diamond';
 }
 
+/**
+ * Treatment within a category. 'military' keeps the category's shape and hue
+ * but draws it as an outline instead of a solid, so it reads apart from civil
+ * traffic by form (hollow vs solid), not by hue alone.
+ */
+export type MarkerVariant = 'standard' | 'military';
+
+/** Which layers use a non-standard variant. */
+export function markerVariantFor(layerId: string): MarkerVariant {
+  return layerId === 'military-flights' ? 'military' : 'standard';
+}
+
 /** Cache key for a marker image. */
-export function markerKey(shape: MarkerShape, color: string): string {
-  return `gev-marker:${shape}:${color}`;
+export function markerKey(shape: MarkerShape, color: string, variant: MarkerVariant = 'standard'): string {
+  return variant === 'standard' ? `gev-marker:${shape}:${color}` : `gev-marker:${shape}:${color}:${variant}`;
 }
 
 /** Polygon outline (x, y pairs on a 40 x 40 grid, pointing up) for polygonal shapes; null for round ones. */

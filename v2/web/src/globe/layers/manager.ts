@@ -5,7 +5,7 @@ import type { FailedMessage, FromWorker, UpdateMessage } from '../../data/protoc
 import { bboxArea, bboxContains, bboxFromRectangle } from '../../lib/bbox.ts';
 import { nextPollMs } from '../../lib/cadence.ts';
 import { debounce } from '../../lib/debounce.ts';
-import { CATEGORY_MAP_COLOR } from '../../lib/markerStyle.ts';
+import { CATEGORY_MAP_COLOR, markerVariantFor } from '../../lib/markerStyle.ts';
 import { thin } from '../../lib/trackStyle.ts';
 import { selectionRingCanvas, SELECTION_KEY } from './markers.ts';
 import { parsePickId, PointLayer } from './pointLayer.ts';
@@ -284,7 +284,7 @@ export function createDataLayers(
       if (existing) return;
       const rt: Runtime = {
         spec,
-        point: new PointLayer(Cesium, scene, { layer: spec.id, category: spec.category }),
+        point: new PointLayer(Cesium, scene, { layer: spec.id, category: spec.category, variant: markerVariantFor(spec.id) }),
         state: { phase: 'loading', hasData: false, feed: null, truncated: false, at: null, historical: false, drawn: 0, error: null },
         timer: undefined,
         inflight: 0,
