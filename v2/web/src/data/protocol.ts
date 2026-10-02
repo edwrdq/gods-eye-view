@@ -19,6 +19,8 @@ export interface UpdateMessage {
   historical: boolean;
   feed: FeedStatus;
   truncated: boolean;
+  /** How many objects matched before the server capped the answer; null from servers that do not say. */
+  total: number | null;
   /** Objects in the server's answer (before diffing). */
   received: number;
   packet: UpdatePacket;

@@ -23,6 +23,7 @@ import type { FeedManager } from './feeds/manager.ts';
 import { GeocodeUnavailableError, type Geocoder } from './geocode.ts';
 import { parseBBox } from './geo.ts';
 import { layerKinds } from './layers.ts';
+import { thinToCap } from './feeds/thin.ts';
 import { isFeaturesFeed, isOrbitsFeed, type Feed, type FeedLayer, type TrackedFeed } from './feeds/types.ts';
 
 export interface AppDeps {
@@ -148,9 +149,10 @@ export function createApp(deps: AppDeps): Hono {
     const feed = g.feed as TrackedFeed;
     let objects: Observation[];
     let truncated: boolean;
+    let total: number;
     if (at === undefined) {
       if (bbox) feed.hint?.(layerId, bbox);
-      ({ objects, truncated } = feed.live.query({ bbox, include: layer.include, limit: maxObjects }));
+      ({ objects, truncated, total } = feed.live.query({ bbox, include: layer.include, limit: maxObjects }));
     } else {
       const rows = deps.observations.latestPerObject({
         layer: layer.storageLayer,
@@ -159,8 +161,9 @@ export function createApp(deps: AppDeps): Hono {
         bbox,
       });
       objects = layer.include ? rows.filter(layer.include) : rows;
-      truncated = objects.length > maxObjects;
-      if (truncated) objects.length = maxObjects;
+      total = objects.length;
+      truncated = total > maxObjects;
+      if (truncated) objects = thinToCap(objects, maxObjects, { bbox, now: at });
     }
     const body: LayerSnapshot = {
       layer: layerId,
@@ -169,6 +172,7 @@ export function createApp(deps: AppDeps): Hono {
       feed: g.status,
       objects,
       truncated,
+      total,
     };
     return c.json(body);
   });

@@ -1,4 +1,5 @@
 import type { FeedStatus } from '@gev/shared';
+import type { Rect } from '../../lib/declutter.ts';
 import type { LayerRunState, LayerSpec, UpdateMetric } from './types.ts';
 
 type Cartesian3 = import('cesium').Cartesian3;
@@ -27,7 +28,7 @@ export interface LayerController {
   sizeOf(layer: string, objectId: string): number;
   /** The selected object (any layer) or null: each layer labels its own and clears the rest. */
   pin(sel: { layer: string; objectId: string } | null): void;
-  updateLabels(center: Cartesian3 | null, altitude: number): void;
+  updateLabels(center: Cartesian3 | null, altitude: number, occupied: Rect[]): void;
   /** A newer FeedStatus arrived from /api/feeds. */
   noteFeed(feed: FeedStatus): void;
   busy(): boolean;

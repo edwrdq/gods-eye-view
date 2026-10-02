@@ -19,6 +19,8 @@ export interface LayerRunState {
   hasData: boolean;
   feed: FeedStatus | null;
   truncated: boolean;
+  /** Objects that matched before the server capped the answer (tracked layers); undefined when unknown. */
+  total?: number;
   /** Instant of the drawn snapshot. */
   at: number | null;
   historical: boolean;

@@ -49,7 +49,7 @@ async function run(layer: string, seq: number, bbox: BBox | null, at: number | n
     const packet = pack(snapshot, st.table);
     const parseMs = performance.now() - t1;
     scope.postMessage(
-      { type: 'update', layer, seq, at: snapshot.at, historical: snapshot.historical, feed: snapshot.feed, truncated: snapshot.truncated, received: snapshot.objects.length, packet, fetchMs: t1 - t0, parseMs },
+      { type: 'update', layer, seq, at: snapshot.at, historical: snapshot.historical, feed: snapshot.feed, truncated: snapshot.truncated, total: snapshot.total ?? null, received: snapshot.objects.length, packet, fetchMs: t1 - t0, parseMs },
       transferList(packet),
     );
   } catch (e) {

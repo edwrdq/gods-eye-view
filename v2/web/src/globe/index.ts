@@ -52,6 +52,8 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
   scene.globe.baseColor = Cesium.Color.fromCssColorString('#0c2438'); // shows while tiles stream in
   scene.globe.showGroundAtmosphere = false // blows out to white without a lit sun;
   scene.globe.enableLighting = false;
+  // false: markers sit on the surface and must not be clipped by terrain. Lines and billboards on the far side
+  // of the Earth are still hidden by Cesium's horizon depth plane (checked for orbit paths, tracks and cyclone cones).
   scene.globe.depthTestAgainstTerrain = false;
   if (scene.sun) scene.sun.show = false;
   if (scene.moon) scene.moon.show = false;

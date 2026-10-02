@@ -6,7 +6,8 @@
   import StatusChip from './StatusChip.svelte';
   import { effectiveState } from '../lib/cadence.ts';
   import { HISTORY_NOTE_LIVE_ONLY } from '../lib/featureWindow.ts';
-  import { layerSummary } from '../lib/layerSummary.ts';
+  import { capNote, layerSummary } from '../lib/layerSummary.ts';
+  import { layerChip } from '../lib/viewState.ts';
   import { isRendered, layerNoun } from '../lib/layers.ts';
   import { formatAge, formatClockUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
@@ -37,6 +38,9 @@
   );
   const elementsAge = $derived(age);
   const viewing = $derived(timeState.at !== null);
+  const chip = $derived(
+    layerChip({ kind: layer.kind, viewing, drawnHistorical: run?.historical === true, currentOnly: run?.currentOnly === true, health, hasData: run?.hasData === true }),
+  );
 </script>
 
 {#if isRendered(layer)}
@@ -53,15 +57,15 @@
     </div>
   {:else if on && run && !plain}
     <div class="layer-status">
-      {#if run.currentOnly}
+      {#if chip === 'current'}
         <StatusChip tone="neutral"><Clock size={12} strokeWidth={2} aria-hidden="true" />Current</StatusChip>
-      {:else if layer.kind === 'orbits' && viewing}
+      {:else if chip === 'computed'}
         <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Computed</StatusChip>
-      {:else if run.historical}
+      {:else if chip === 'recorded'}
         <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
-      {:else if health === 'stale' || health === 'error'}
-        <StatusChip tone={health}><Clock size={12} strokeWidth={2} aria-hidden="true" />{health === 'error' ? 'Error' : 'Stale'}</StatusChip>
-      {:else if layer.kind === 'orbits' && !run.hasData}
+      {:else if chip === 'stale' || chip === 'error'}
+        <StatusChip tone={chip}><Clock size={12} strokeWidth={2} aria-hidden="true" />{chip === 'error' ? 'Error' : 'Stale'}</StatusChip>
+      {:else if chip === 'waiting'}
         <StatusChip tone="loading">Waiting</StatusChip>
       {:else}
         <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
@@ -70,12 +74,16 @@
       {#if layer.kind === 'orbits' && elementsAge && !viewing}<span class="note">Elements updated {age}</span>{/if}
       {#if run.currentOnly}<span class="note">{HISTORY_NOTE_LIVE_ONLY}</span>{/if}
       {#if layer.kind === 'orbits' && viewing && timeState.at !== null}<span class="note">Positions predicted for <span class="mono">{formatClockUtc(timeState.at)}</span></span>{/if}
-      {#if run.truncated}<span class="note">Capped. Zoom in to see the rest.</span>{/if}
+      {#if run.truncated}<span class="note">{capNote(run.drawn, run.total)}</span>{/if}
     </div>
-  {:else if on && run && run.historical}
+  {:else if on && (run?.historical || viewing)}
     <div class="layer-status">
       <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
-      <span class="num">{run.drawn.toLocaleString('en-US')} {layerNoun(layer.id, run.drawn)} · at <span class="mono">{run.at ? formatClockUtc(run.at) : ''}</span></span>
+      {#if run?.historical}
+        <span class="num">{run.drawn.toLocaleString('en-US')} {layerNoun(layer.id, run.drawn)} · at <span class="mono">{run.at ? formatClockUtc(run.at) : ''}</span></span>
+      {:else if timeState.at !== null}
+        <span class="num">At <span class="mono">{formatClockUtc(timeState.at)}</span></span>
+      {/if}
     </div>
   {:else if feed && health === 'off'}
     <div class="layer-status"><StatusChip tone="planned">Source off</StatusChip><span>Not running on this server.</span></div>
@@ -93,7 +101,7 @@
         <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
         <span class="num">{count} {noun}{age ? ` · ${age}` : ''}</span>
       {/if}
-      {#if run?.truncated}<span class="note">Capped. Zoom in to see the rest.</span>{/if}
+      {#if run?.truncated}<span class="note">{capNote(run.drawn, run.total)}</span>{/if}
     </div>
   {/if}
 {/if}

@@ -14,6 +14,15 @@ export interface SummaryInput {
 }
 
 const n = (v: number) => v.toLocaleString('en-US');
+
+/**
+ * The note under a capped tracked layer: "Showing 20,000 of 33,104. Zoom in for all."
+ * Without the total (an older server) it falls back to a plain cap notice.
+ */
+export function capNote(shown: number, total: number | undefined): string {
+  if (total === undefined || total <= shown) return 'Capped. Zoom in to see the rest.';
+  return `Showing ${n(shown)} of ${n(total)}. Zoom in for all.`;
+}
 const hhmm = (ms: number) => `${new Date(ms).toISOString().slice(11, 16)}Z`;
 
 /**

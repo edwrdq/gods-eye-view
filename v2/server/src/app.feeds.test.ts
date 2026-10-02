@@ -158,11 +158,30 @@ test('snapshot is capped and flagged truncated', async () => {
   const r = (await get<LayerSnapshot>('/api/layers/flights/snapshot')).body;
   assert.equal(r.objects.length, 5);
   assert.equal(r.truncated, true);
+  assert.equal(r.total, 12);
   const exact = setup({ maxSnapshotObjects: 12 });
   exact.flights.start();
   await exact.flights.idle();
   for (let i = 0; i < 12; i++) exact.flights.live.upsert(flight(`a${i}`));
-  assert.equal((await exact.get<LayerSnapshot>('/api/layers/flights/snapshot')).body.truncated, false);
+  const whole = (await exact.get<LayerSnapshot>('/api/layers/flights/snapshot')).body;
+  assert.equal(whole.truncated, false);
+  assert.equal(whole.total, 12);
+});
+
+test('a capped snapshot is spread over the map, not the first N objects', async () => {
+  const { get, flights } = setup({ maxSnapshotObjects: 10 });
+  flights.start();
+  await flights.idle();
+  // A crowd at one airport arrives first, then eight aircraft far apart.
+  for (let i = 0; i < 60; i++) flights.live.upsert(flight(`c${String(i).padStart(5, '0')}`, { lon: 4.76, lat: 52.31 }));
+  for (let i = 0; i < 8; i++) flights.live.upsert(flight(`s${String(i).padStart(5, '0')}`, { lon: -150 + i * 40, lat: -50 + i * 15 }));
+  const r = (await get<LayerSnapshot>('/api/layers/flights/snapshot')).body;
+  assert.equal(r.truncated, true);
+  assert.equal(r.total, 68);
+  assert.equal(r.objects.length, 10);
+  const spread = r.objects.filter((o) => o.objectId.startsWith('s'));
+  assert.equal(spread.length, 8);
+  await flights.stop();
 });
 
 test('a bbox snapshot registers the viewport as an area of interest', async () => {
@@ -220,6 +239,7 @@ test('historical lookback is 60 minutes for vessels; the cap applies to history 
   const capped = (await get<LayerSnapshot>(`/api/layers/vessels/snapshot?at=${T0}`)).body;
   assert.equal(capped.objects.length, 2);
   assert.equal(capped.truncated, true);
+  assert.equal(capped.total, 4);
 });
 
 test('object detail: live uses full props; `at` uses history; missing object is 404', async () => {

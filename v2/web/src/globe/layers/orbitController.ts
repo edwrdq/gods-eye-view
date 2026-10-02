@@ -2,6 +2,7 @@ import type { FeedStatus, ObjectDetail } from '@gev/shared';
 import type { ApiConfig } from '../../api/index.ts';
 import { OrbitHub } from '../../data/orbitHub.ts';
 import type { ActiveMessage, FromOrbitWorker, InspectedMessage, LoadedMessage, PositionsMessage, SelectedMessage } from '../../data/orbitProtocol.ts';
+import { selectLabels, type LabelCandidate, type Rect } from '../../lib/declutter.ts';
 import { SATELLITE_PX } from '../../lib/featureStyle.ts';
 import { CATEGORY_MAP_COLOR } from '../../lib/markerStyle.ts';
 import { buildSatelliteDetail } from '../../lib/satDetail.ts';
@@ -15,6 +16,7 @@ import { withAlpha } from './featureLayer.ts';
 const LAYER = 'satellites';
 const LABEL_MAX_ALTITUDE_M = 4_000_000;
 const LABEL_CAP = 40;
+const MAX_PROJECTED = 400;
 const MARKER_SCALE = 0.36;
 const RETRY_MS = 5_000;
 const MAX_RETRY_MS = 60_000;
@@ -159,29 +161,41 @@ export class OrbitController implements LayerController {
     });
   }
 
-  updateLabels(center: Cartesian3 | null, altitude: number): void {
+  updateLabels(center: Cartesian3 | null, altitude: number, occupied: Rect[]): void {
     if (!this.spec) return;
-    const items: Array<{ id: string; text: string; position: Cartesian3; px: number; d: number }> = [];
+    const C = this.host.Cesium;
     const pinned = this.pinnedId;
+    const items: Array<{ id: string; text: string; position: Cartesian3; px: number }> = [];
+    const pinnedSlot = pinned ? this.slotOfId.get(pinned) : undefined;
+    const pinnedBb = pinnedSlot === undefined ? undefined : this.bySlot[pinnedSlot];
     if (center && altitude < LABEL_MAX_ALTITUDE_M) {
+      // Nearest the view centre first, no overlaps, a few per screen block (same rules as the other layers).
+      const near: Array<{ slot: number; d: number }> = [];
       for (const slot of this.shownSlots) {
         const b = this.bySlot[slot]!;
-        const id = this.ids[slot]!;
-        if (id === pinned || !b.show) continue;
+        if (!b.show || this.ids[slot] === pinned) continue;
         const p = b.position;
-        const d = p.x * center.x + p.y * center.y + p.z * center.z;
-        if (items.length < LABEL_CAP) items.push({ id, text: this.names[slot] ?? id, position: p, px: SATELLITE_PX, d });
-        else {
-          let wi = 0;
-          for (let i = 1; i < items.length; i++) if (items[i]!.d < items[wi]!.d) wi = i;
-          if (d > items[wi]!.d) items[wi] = { id, text: this.names[slot] ?? id, position: p, px: SATELLITE_PX, d };
-        }
+        near.push({ slot, d: p.x * center.x + p.y * center.y + p.z * center.z });
+      }
+      near.sort((x, y) => y.d - x.d);
+      if (near.length > MAX_PROJECTED) near.length = MAX_PROJECTED;
+      const win = new C.Cartesian2();
+      const w = this.host.scene.canvas.clientWidth;
+      const h = this.host.scene.canvas.clientHeight;
+      const cands: LabelCandidate[] = [];
+      for (const e of near) {
+        const xy = C.SceneTransforms.worldToWindowCoordinates(this.host.scene, this.bySlot[e.slot]!.position, win);
+        if (!xy || xy.x < 0 || xy.y < 0 || xy.x > w || xy.y > h) continue;
+        const id = this.ids[e.slot]!;
+        cands.push({ id, x: xy.x, y: xy.y, text: this.names[e.slot] ?? id, px: SATELLITE_PX, rank: e.d });
+      }
+      for (const c of selectLabels(cands, { cap: LABEL_CAP, occupied })) {
+        const slot = this.slotOfId.get(c.id)!;
+        items.push({ id: c.id, text: c.text, position: this.bySlot[slot]!.position, px: SATELLITE_PX });
       }
     }
-    if (pinned) {
-      const slot = this.slotOfId.get(pinned);
-      const b = slot === undefined ? undefined : this.bySlot[slot];
-      if (slot !== undefined && b && b.show) items.push({ id: pinned, text: this.names[slot] ?? pinned, position: b.position, px: SATELLITE_PX, d: 0 });
+    if (pinned && pinnedSlot !== undefined && pinnedBb && pinnedBb.show) {
+      items.push({ id: pinned, text: this.names[pinnedSlot] ?? pinned, position: pinnedBb.position, px: SATELLITE_PX });
     }
     this.labels.show(items);
   }

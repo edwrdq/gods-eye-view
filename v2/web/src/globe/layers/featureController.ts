@@ -3,6 +3,7 @@ import type { ApiConfig } from '../../api/index.ts';
 import { FeatureHub } from '../../data/featureHub.ts';
 import type { FeatureFailedMessage, FeaturesMessage, FromFeatureWorker } from '../../data/featureProtocol.ts';
 import { nextPollMs } from '../../lib/cadence.ts';
+import type { Rect } from '../../lib/declutter.ts';
 import { featureWindow, isLiveOnly, referenceTime } from '../../lib/featureWindow.ts';
 import { FeatureLayer } from './featureLayer.ts';
 import type { ControllerHost, LayerController } from './host.ts';
@@ -104,8 +105,8 @@ export class FeatureController implements LayerController {
     for (const [id, rt] of this.layers) rt.view.pin(sel && sel.layer === id ? sel.objectId : null);
   }
 
-  updateLabels(center: import('cesium').Cartesian3 | null, altitude: number): void {
-    for (const rt of this.layers.values()) rt.view.updateLabels(center, altitude);
+  updateLabels(center: import('cesium').Cartesian3 | null, altitude: number, occupied: Rect[]): void {
+    for (const rt of this.layers.values()) rt.view.updateLabels(center, altitude, occupied);
   }
 
   busy(): boolean {

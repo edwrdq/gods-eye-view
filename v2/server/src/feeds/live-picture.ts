@@ -1,5 +1,6 @@
 import type { BBox, Observation } from '@gev/shared';
 import { approxDistanceM, headingDelta, inBBox, isWorld } from '../geo.ts';
+import { thinToCap } from './thin.ts';
 
 /** Decides which observations are worth a history row. */
 export interface ThrottlePolicy {
@@ -141,22 +142,25 @@ export class LivePicture {
   }
 
   /**
-   * Compact observations inside bbox (whole world when omitted), up to limit.
-   * `truncated` is true when more matched than were returned.
+   * Compact observations inside bbox (whole world when omitted). When more than
+   * `limit` match, a spatially even subset of `limit` is returned (see thinToCap),
+   * `truncated` is true and `total` says how many matched.
    */
   query(opts: { bbox?: BBox; include?: (o: Observation) => boolean; limit: number }): {
     objects: Observation[];
     truncated: boolean;
+    total: number;
   } {
     const bbox = opts.bbox && !isWorld(opts.bbox) ? opts.bbox : undefined;
     const objects: Observation[] = [];
     for (const e of this.map.values()) {
       if (bbox && !inBBox(e.obs.lon, e.obs.lat, bbox)) continue;
       if (opts.include && !opts.include(e.obs)) continue;
-      if (objects.length >= opts.limit) return { objects, truncated: true };
       objects.push(this.compactOf(e));
     }
-    return { objects, truncated: false };
+    const total = objects.length;
+    if (total <= opts.limit) return { objects, truncated: false, total };
+    return { objects: thinToCap(objects, opts.limit, { bbox, now: this.opts.now() }), truncated: true, total };
   }
 
   private compactOf(e: Entry): Observation {

@@ -176,8 +176,14 @@ export interface LayerSnapshot {
   feed: FeedStatus;
   /** Snapshot props are a compact subset (label, type, ...); see the detail endpoint. */
   objects: Observation[];
-  /** True when the server capped the result; zoom in for the rest. */
+  /**
+   * True when the server capped the result; zoom in for the rest. The objects
+   * returned are then a spatially even subset (moving, named and recently
+   * updated objects preferred), not the first N.
+   */
   truncated: boolean;
+  /** How many objects matched before capping (equals objects.length when not truncated). Optional for older servers. */
+  total?: number;
 }
 
 /**

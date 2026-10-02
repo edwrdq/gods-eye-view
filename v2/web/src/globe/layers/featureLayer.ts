@@ -6,6 +6,7 @@ import { quakeStyle } from '../../lib/quakeStyle.ts';
 import { launchCanvas, markerCanvas, quakeCanvas, stormCanvas } from './markers.ts';
 import { LabelPool } from './labelPool.ts';
 import { PICK_SEP } from './pointLayer.ts';
+import { labelRect, selectLabels, type LabelCandidate, type Rect } from '../../lib/declutter.ts';
 
 type Cesium = typeof import('cesium');
 type Scene = import('cesium').Scene;
@@ -307,7 +308,7 @@ export class FeatureLayer {
    * zoomed in, and the pinned (selected) one regardless. `center` is the camera's
    * look-at point in Earth-fixed metres, null when none.
    */
-  updateLabels(center: Cartesian3 | null, altitude: number): void {
+  updateLabels(center: Cartesian3 | null, altitude: number, occupied: Rect[]): void {
     const chosen: Entry[] = [];
     const zoomed = center !== null && altitude < LABEL_MAX_ALTITUDE_M;
     // Several features can share one spot (launches from the same pad): label only the one drawn on top.
@@ -331,31 +332,22 @@ export class FeatureLayer {
         near.push({ e: n > 1 ? { ...e, label: `${e.label} · +${n - 1} more here` } : e, d: p.x * center.x + p.y * center.y + p.z * center.z });
       }
     }
-    near.sort((a, b) => b.d - a.d);
-    // Greedy screen-space declutter: nearest the view centre first, skip labels that would overlap one already placed.
-    const placed: Array<{ x: number; y: number; w: number }> = [];
+    // Screen-space declutter (shared with the tracked layers): nearest the view centre first, no overlaps, a few per screen block.
     const win = new this.C.Cartesian2();
-    const pinnedEntry = this.pinned ? this.entries.get(this.pinned) : undefined;
-    const rect = (e: Entry) => {
-      const w = this.C.SceneTransforms.worldToWindowCoordinates(this.scene, e.billboard.position, win);
-      return w ? { x: w.x, y: w.y, w: e.label.length * 6.8 + e.px } : null;
-    };
-    if (pinnedEntry) {
-      const r = rect(pinnedEntry);
-      if (r) placed.push(r);
-    }
+    const project = (e: Entry) => this.C.SceneTransforms.worldToWindowCoordinates(this.scene, e.billboard.position, win);
     for (const e of chosen) {
-      const r = rect(e);
-      if (r) placed.push(r);
+      const xy = project(e);
+      if (xy) occupied.push(labelRect(xy.x, xy.y, e.label, e.px));
     }
-    for (let i = 0; i < near.length && chosen.length < LABEL_CAP; i++) {
-      const e = near[i]!.e;
-      const r = rect(e);
-      if (!r) continue;
-      if (placed.some((q) => Math.abs(q.y - r.y) < 15 && r.x < q.x + q.w && q.x < r.x + r.w)) continue;
-      placed.push(r);
-      chosen.push(e);
+    const byId = new Map<string, Entry>();
+    const cands: LabelCandidate[] = [];
+    for (const { e, d } of near) {
+      const xy = project(e);
+      if (!xy) continue;
+      byId.set(e.id, e);
+      cands.push({ id: e.id, x: xy.x, y: xy.y, text: e.label, px: e.px, rank: d });
     }
+    for (const c of selectLabels(cands, { cap: LABEL_CAP, occupied })) chosen.push(byId.get(c.id)!);
     const pinned = this.pinned ? this.entries.get(this.pinned) : undefined;
     if (pinned) chosen.push(pinned);
     this.labelPool.show(chosen.map((e) => ({ id: e.id, text: e.label, position: e.billboard.position, px: e.px })));

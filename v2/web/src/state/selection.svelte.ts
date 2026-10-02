@@ -5,6 +5,7 @@ import { cadenceMs } from '../lib/cadence.ts';
 import { featureToObjectDetail } from '../lib/featureDetail.ts';
 import { formatLatLon } from '../lib/format.ts';
 import { feedStore } from './feeds.svelte.ts';
+import { frameBBox } from '../lib/detailActions.ts';
 import { flyTo } from './globe.svelte.ts';
 import { layerStore } from './layers.svelte.ts';
 import { onTimeCommit, timeState } from './time.svelte.ts';
@@ -176,6 +177,14 @@ export function toggleFollow(): void {
     const o = selection.detail.observation;
     flyTo({ lon: o.lon, lat: o.lat, kind: 'place' });
   }
+}
+
+/** Fly the camera to the selected feature (quake, storm part, launch pad): it does not move, so there is nothing to follow. */
+export function flyToSelection(): void {
+  const ref = selection.ref;
+  const o = selection.detail?.observation;
+  if (!ref || !o) return;
+  flyTo({ lon: o.lon, lat: o.lat, bbox: frameBBox(ref.layer, o.lon, o.lat), kind: 'place' });
 }
 
 export function toggleTrack(): void {

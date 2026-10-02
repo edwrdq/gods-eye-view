@@ -121,7 +121,9 @@ test('query filters by bbox (incl. antimeridian), include, and truncates at limi
   const capped = pic.query({ limit: 2 });
   assert.equal(capped.objects.length, 2);
   assert.equal(capped.truncated, true);
+  assert.equal(capped.total, 3);
   assert.equal(pic.query({ limit: 3 }).truncated, false);
+  assert.equal(pic.query({ limit: 3 }).total, 3);
 });
 
 test('patchProps merges without queuing history and refreshes the compact form', () => {

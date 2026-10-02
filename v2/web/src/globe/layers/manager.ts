@@ -5,6 +5,7 @@ import type { FailedMessage, FromWorker, UpdateMessage } from '../../data/protoc
 import { bboxArea, bboxContains, bboxFromRectangle } from '../../lib/bbox.ts';
 import { nextPollMs } from '../../lib/cadence.ts';
 import { debounce } from '../../lib/debounce.ts';
+import { labelRect, type Rect } from '../../lib/declutter.ts';
 import { CATEGORY_MAP_COLOR, markerVariantFor } from '../../lib/markerStyle.ts';
 import { thin } from '../../lib/trackStyle.ts';
 import { selectionRingCanvas, SELECTION_KEY } from './markers.ts';
@@ -19,6 +20,8 @@ type Cesium = typeof import('cesium');
 
 /** Labels appear below this camera height. */
 export const LABEL_MAX_ALTITUDE_M = 800_000;
+/** Stands in for the selected object's label when reserving room for it. */
+const SELECTED_LABEL_SAMPLE = 'XXXXXXXXXXXX';
 const MOVE_DEBOUNCE_MS = 350;
 const MAX_TRACK_POINTS = 1500;
 
@@ -97,7 +100,7 @@ export function createDataLayers(
         placeRing();
         followStep();
       }
-      refreshLabels();
+      refreshLabels(true);
     },
   };
   const ctlOf = (layer: string): LayerController | undefined => ctls.find((c) => c.owns(layer));
@@ -126,14 +129,27 @@ export function createDataLayers(
 
   const currentBBox = (): BBox | null => bboxFromRectangle(camera.computeViewRectangle(scene.globe.ellipsoid));
 
-  function refreshLabels(): void {
-    const show = camera.positionCartographic.height < LABEL_MAX_ALTITUDE_M;
+  /**
+   * Re-choose every layer's labels. One list of taken screen boxes runs through all of them
+   * (the selected object first, then storms and satellites, then the tracked layers), so labels
+   * of different layers never pile up either. `controllersOnly`: a satellite or feature moved,
+   * so the tracked layers' labels have not changed.
+   */
+  function refreshLabels(controllersOnly = false): void {
+    const altitude = camera.positionCartographic.height;
+    const show = altitude < LABEL_MAX_ALTITUDE_M;
     const center = show ? viewCenter() : null;
-    for (const rt of layers.values()) rt.point.updateLabels(center);
+    const occupied: Rect[] = [];
+    const sel = selectedPosition();
+    if (sel) {
+      const xy = Cesium.SceneTransforms.worldToWindowCoordinates(scene, sel, new Cesium.Cartesian2());
+      if (xy) occupied.push(labelRect(xy.x, xy.y, SELECTED_LABEL_SAMPLE, 20));
+    }
     if (ctls.length > 0) {
       const c = viewCenter();
-      for (const ctl of ctls) ctl.updateLabels(c, camera.positionCartographic.height);
+      for (const ctl of ctls) ctl.updateLabels(c, altitude, occupied);
     }
+    if (!controllersOnly) for (const rt of layers.values()) rt.point.updateLabels(center, altitude, occupied);
     scene.requestRender();
   }
 
@@ -219,7 +235,7 @@ export function createDataLayers(
     rt.failures = 0;
     rt.lastBBox = rt.requestedBBox;
     rt.lastTruncated = m.truncated;
-    rt.state = { phase: 'ready', hasData: true, feed: m.feed, truncated: m.truncated, at: m.at, historical: m.historical, drawn: m.packet.alive, error: null };
+    rt.state = { phase: 'ready', hasData: true, feed: m.feed, truncated: m.truncated, ...(m.total !== null ? { total: m.total } : {}), at: m.at, historical: m.historical, drawn: m.packet.alive, error: null };
     if (selected && selected.layer === m.layer) {
       placeRing();
       followStep();

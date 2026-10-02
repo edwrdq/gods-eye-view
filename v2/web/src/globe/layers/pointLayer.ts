@@ -1,5 +1,6 @@
 import type { LayerCategory } from '@gev/shared';
 import { SlotMirror, type UpdatePacket, type UpsertSink } from '../../data/slots.ts';
+import { isNamedLabel, mayLabel, selectLabels, type LabelCandidate, type Rect } from '../../lib/declutter.ts';
 import { CATEGORY_MAP_COLOR, CATEGORY_SHAPE, rotatesWithHeading, type MarkerVariant } from '../../lib/markerStyle.ts';
 import { markerCanvas } from './markers.ts';
 
@@ -12,6 +13,15 @@ type Label = import('cesium').Label;
 export const PICK_SEP = '\u0001';
 const DEG2RAD = Math.PI / 180;
 const MARKER_SCALE = 0.5; // marker images are drawn at 2x for sharpness
+const MARKER_PX = 20;
+/** At most this many candidates are projected to the screen per update. */
+const MAX_PROJECTED = 600;
+/** Added to the rank of named objects so they are placed before anonymous ones however far from the centre. */
+const NAMED_BONUS = 1e16;
+/** Dot product with the view centre below which an object is too far to matter (about 26 degrees of arc). */
+const MIN_DOT = 0.9 * 6.371e6 * 6.371e6;
+const MAX_LABEL_CHARS = 24;
+const clip = (t: string): string => (t.length > MAX_LABEL_CHARS ? `${t.slice(0, MAX_LABEL_CHARS - 1).trimEnd()}…` : t);
 
 export interface PointLayerOptions {
   layer: string;
@@ -54,7 +64,7 @@ export class PointLayer {
     this.scene = scene;
     this.layer = opts.layer;
     this.category = opts.category;
-    this.labelCap = opts.labelCap ?? 60;
+    this.labelCap = opts.labelCap ?? 30;
     const shape = CATEGORY_SHAPE[opts.category];
     this.rotates = rotatesWithHeading(shape);
     const { key, canvas } = markerCanvas(shape, CATEGORY_MAP_COLOR[opts.category], opts.variant);
@@ -139,33 +149,49 @@ export class PointLayer {
   }
 
   /**
-   * Label up to `labelCap` objects nearest the view centre, plus the pinned one.
-   * `center` is the camera's look-at point in Earth-fixed metres; pass null to hide all labels.
+   * Choose the labels: named objects nearest the view centre that fit on screen without
+   * overlapping (also with the boxes in `occupied`, shared with the other layers), at most `labelCap` and
+   * a few per screen block (see selectLabels), plus the pinned one. Objects known only by a numeric id or hex code are labelled only when very
+   * close or selected. `center` is the camera's look-at point in Earth-fixed metres; null hides all labels.
    */
-  updateLabels(center: import('cesium').Cartesian3 | null): void {
-    const n = center ? this.labelCap : 0;
-    const best: Array<{ slot: number; d: number }> = [];
-    if (center && n > 0) {
-      let worst = -Infinity;
+  updateLabels(center: import('cesium').Cartesian3 | null, altitude: number, occupied: Rect[]): void {
+    const C = this.Cesium;
+    const pinnedBb = this.pinnedSlot >= 0 ? this.bySlot[this.pinnedSlot] : undefined;
+    const slots: number[] = [];
+    const win = new C.Cartesian2();
+    const project = (p: import('cesium').Cartesian3) => C.SceneTransforms.worldToWindowCoordinates(this.scene, p, win);
+    if (center && this.labelCap > 0) {
+      // Nearest to the view centre first, but only those that may carry a label at this zoom.
+      const near: Array<{ slot: number; rank: number }> = [];
       for (let slot = 0; slot < this.bySlot.length; slot++) {
         const b = this.bySlot[slot];
-        if (!b || slot === this.pinnedSlot) continue;
+        if (!b || !b.show || slot === this.pinnedSlot) continue;
+        const id = this.mirror.idBySlot[slot] ?? '';
+        const label = this.mirror.labelBySlot[slot] ?? '';
+        if (!mayLabel(label, id, altitude, false)) continue;
         const p = b.position;
         const d = p.x * center.x + p.y * center.y + p.z * center.z; // larger = nearer the centre
-        if (best.length < n) {
-          best.push({ slot, d });
-          if (best.length === n) worst = Math.min(...best.map((e) => e.d));
-        } else if (d > worst) {
-          let wi = 0;
-          for (let i = 1; i < best.length; i++) if (best[i]!.d < best[wi]!.d) wi = i;
-          best[wi] = { slot, d };
-          worst = Math.min(...best.map((e) => e.d));
-        }
+        if (d < MIN_DOT) continue; // over the horizon or far from the view
+        near.push({ slot, rank: (isNamedLabel(label, id) ? NAMED_BONUS : 0) + d });
       }
+      if (near.length > MAX_PROJECTED) {
+        near.sort((x, y) => y.rank - x.rank);
+        near.length = MAX_PROJECTED;
+      }
+      const w = this.scene.canvas.clientWidth;
+      const h = this.scene.canvas.clientHeight;
+      const cands: Array<LabelCandidate & { slot: number }> = [];
+      for (const e of near) {
+        const b = this.bySlot[e.slot]!;
+        const xy = project(b.position);
+        if (!xy || xy.x < 0 || xy.y < 0 || xy.x > w || xy.y > h) continue;
+        const id = this.mirror.idBySlot[e.slot] ?? '';
+        const text = clip(this.mirror.labelBySlot[e.slot] || id);
+        cands.push({ id, slot: e.slot, x: xy.x, y: xy.y, text, px: MARKER_PX, rank: e.rank });
+      }
+      for (const c of selectLabels(cands, { cap: this.labelCap, occupied })) slots.push(c.slot);
     }
-    const slots = best.map((e) => e.slot);
-    if (this.pinnedSlot >= 0 && this.bySlot[this.pinnedSlot]) slots.push(this.pinnedSlot);
-    const C = this.Cesium;
+    if (pinnedBb) slots.push(this.pinnedSlot);
     for (let i = 0; i < slots.length; i++) {
       let l = this.labelPool[i];
       if (!l) {
@@ -184,7 +210,7 @@ export class PointLayer {
         this.labelPool[i] = l;
       }
       const slot = slots[i]!;
-      const text = this.mirror.labelBySlot[slot] || this.mirror.idBySlot[slot] || '';
+      const text = clip(this.mirror.labelBySlot[slot] || this.mirror.idBySlot[slot] || '');
       if (l.text !== text) l.text = text;
       l.position = this.bySlot[slot]!.position;
       l.id = this.layer + PICK_SEP + this.mirror.idBySlot[slot];

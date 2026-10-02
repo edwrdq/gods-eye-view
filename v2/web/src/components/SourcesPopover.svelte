@@ -5,6 +5,7 @@
   import { clock } from '../state/clock.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
   import { layerStore } from '../state/layers.svelte.ts';
+  import { timeState } from '../state/time.svelte.ts';
 
   let { onClose }: { onClose: () => void } = $props();
   const rows = $derived(
@@ -18,6 +19,7 @@
 
 <div class="popover" role="dialog" aria-label="Data sources">
   <h2>Data sources</h2>
+  {#if timeState.at !== null}<p class="note">Status of each source right now. You are viewing recorded history.</p>{/if}
   {#if rows.length === 0}
     <p class="empty">No feeds reported yet.</p>
   {:else}
@@ -41,6 +43,10 @@
 </div>
 
 <style>
+  .note {
+    margin: 0 0 var(--space-3);
+    color: var(--text-tertiary);
+  }
   .popover {
     position: absolute;
     right: 0;

@@ -1,9 +1,11 @@
 <script lang="ts">
   import Clock from '@lucide/svelte/icons/clock';
+  import History from '@lucide/svelte/icons/history';
   import AttributionPopover from './AttributionPopover.svelte';
   import SourcesPopover from './SourcesPopover.svelte';
   import StatusChip from './StatusChip.svelte';
   import { freshnessSummary } from '../lib/cadence.ts';
+  import { freshnessChip } from '../lib/viewState.ts';
   import { formatClockUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
@@ -18,7 +20,8 @@
 
   const feeds = $derived(Object.values(feedStore.byLayer));
   const summary = $derived(freshnessSummary(feeds, clock.now));
-  const allFresh = $derived(summary.total > 0 && summary.fresh === summary.total);
+  const viewing = $derived(timeState.at !== null);
+  const chip = $derived(freshnessChip({ viewing, fresh: summary.fresh, total: summary.total }));
 
   const shown = $derived(globeState.cursor ?? globeState.center);
   const label = $derived(globeState.cursor ? 'Cursor' : 'Center');
@@ -47,12 +50,18 @@
   <span class="seg seg-alt"><span class="lbl">Altitude</span> <b class="num">{globeState.altitude === null ? '—' : formatAltitude(globeState.altitude)}</b></span>
   <span class="grow"></span>
   <span class="seg src-wrap" bind:this={sourcesWrap}>
-    <button class="seg-btn" type="button" aria-label={summary.total > 0 ? `Data sources: ${summary.fresh} of ${summary.total} fresh` : undefined} aria-expanded={sourcesOpen} aria-haspopup="dialog" title="Show per-source freshness" onclick={() => (sourcesOpen = !sourcesOpen)}>
+    <button class="seg-btn" type="button" aria-label={summary.total > 0 ? chip.label : undefined} aria-expanded={sourcesOpen} aria-haspopup="dialog" title="Show per-source freshness" onclick={() => (sourcesOpen = !sourcesOpen)}>
       {#if summary.total === 0}
         Sources <b>{feedStore.failed ? 'Unavailable' : feedStore.loaded ? 'None running' : '—'}</b>
       {:else}
-        <StatusChip tone={allFresh ? 'live' : 'stale'}>{#if allFresh}<span class="dot"></span>Live{:else}<Clock size={12} strokeWidth={2} aria-hidden="true" />Stale{/if}</StatusChip>
-        <span class="num src-text">{summary.fresh} of {summary.total} sources fresh</span>
+        {#if chip.kind === 'recorded'}
+          <StatusChip tone="history"><History size={12} strokeWidth={2} aria-hidden="true" />Recorded</StatusChip>
+        {:else if chip.kind === 'live'}
+          <StatusChip tone="live"><span class="dot"></span>Live</StatusChip>
+        {:else}
+          <StatusChip tone="stale"><Clock size={12} strokeWidth={2} aria-hidden="true" />Stale</StatusChip>
+        {/if}
+        <span class="num src-text">{chip.text}</span>
       {/if}
     </button>
     {#if sourcesOpen}<SourcesPopover onClose={() => (sourcesOpen = false)} />{/if}

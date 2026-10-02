@@ -5,6 +5,7 @@
   import Copy from '@lucide/svelte/icons/copy';
   import Crosshair from '@lucide/svelte/icons/crosshair';
   import ExternalLink from '@lucide/svelte/icons/external-link';
+  import LocateFixed from '@lucide/svelte/icons/locate-fixed';
   import History from '@lucide/svelte/icons/history';
   import MousePointer2 from '@lucide/svelte/icons/mouse-pointer-2';
   import Route from '@lucide/svelte/icons/route';
@@ -14,13 +15,14 @@
   import CategoryIcon from './CategoryIcon.svelte';
   import IconButton from './IconButton.svelte';
   import StatusChip from './StatusChip.svelte';
+  import { primaryAction, titleIsIdentifier } from '../lib/detailActions.ts';
   import { featureTimeNote } from '../lib/featureDetail.ts';
   import { isLiveOnly } from '../lib/featureWindow.ts';
   import { formatAge, formatDuration, formatUtc } from '../lib/time.ts';
   import { clock } from '../state/clock.svelte.ts';
   import { feedStore } from '../state/feeds.svelte.ts';
   import { layerStore } from '../state/layers.svelte.ts';
-  import { copySelection, retryDetail, selectObject, selection, toggleFollow, toggleTrack } from '../state/selection.svelte.ts';
+  import { copySelection, flyToSelection, retryDetail, selectObject, selection, toggleFollow, toggleTrack } from '../state/selection.svelte.ts';
   import { timeState } from '../state/time.svelte.ts';
 
   const detail = $derived(selection.detail);
@@ -31,6 +33,7 @@
   const freshness = $derived(feedStore.byLayer[selection.ref?.layer ?? '']?.freshnessMs ?? 60_000);
   // The server says whether the object is in the live picture; without that flag fall back to its age.
   const kind = $derived(selection.kind);
+  const titleIsId = $derived(detail ? titleIsIdentifier(kind, detail.title, detail.objectId) : false);
   const notInFeed = $derived(selection.phase === 'gone' || (!historical && detail?.live === false));
   // Features and orbits: what the chip and the line beside it say.
   const currentOnly = $derived(kind === 'features' && historical && isLiveOnly(selection.ref?.layer ?? ''));
@@ -106,15 +109,21 @@
     <div class="head">
       <div class="tile"><CategoryIcon {category} /></div>
       <div class="titles">
-        <h2 class="title mono truncate" title={detail.title}>{detail.title}</h2>
+        <h2 class="title truncate" class:mono={titleIsId} title={detail.title}>{detail.title}</h2>
         {#if detail.subtitle}<div class="sub">{detail.subtitle}</div>{/if}
       </div>
       <IconButton label="Close details" onclick={() => selectObject(null)}><X size={18} strokeWidth={1.75} /></IconButton>
     </div>
     <div class="actions">
-      <button class="btn primary" type="button" aria-pressed={selection.following} onclick={toggleFollow}>
-        <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />{selection.following ? 'Following' : 'Follow'}
-      </button>
+      {#if primaryAction(kind) === 'follow'}
+        <button class="btn primary" type="button" aria-pressed={selection.following} onclick={toggleFollow}>
+          <Crosshair size={14} strokeWidth={1.75} aria-hidden="true" />{selection.following ? 'Following' : 'Follow'}
+        </button>
+      {:else}
+        <button class="btn primary" type="button" onclick={flyToSelection}>
+          <LocateFixed size={14} strokeWidth={1.75} aria-hidden="true" />Fly to
+        </button>
+      {/if}
       {#if kind === 'tracked'}
         <button class="btn" type="button" aria-pressed={selection.track === 'on' || selection.track === 'loading'} disabled={false} onclick={toggleTrack}>
           <Route size={14} strokeWidth={1.75} aria-hidden="true" />{selection.track === 'on' ? 'Hide track' : selection.track === 'loading' ? 'Loading track' : 'Show track'}
