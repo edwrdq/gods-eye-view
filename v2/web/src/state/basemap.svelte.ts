@@ -1,6 +1,7 @@
 import {
   BASEMAP_STORAGE_KEY,
   availability,
+  getBaseMap,
   gibsDefaultDate,
   parseChoice,
   serializeChoice,
@@ -50,6 +51,15 @@ export function keysFor(config: { googleMapsApiKey?: string | null; cesiumIonTok
 
 export function bindBaseMapGlobe(g: Globe | null) {
   globe = g;
+  const shown = g?.getBaseMapShown();
+  if (g && shown && shown !== basemap.id) {
+    // A startup fallback (bad key, network): show what is really on the globe and say why.
+    const wanted = getBaseMap(basemap.id)?.label ?? 'The chosen base map';
+    basemap.id = shown;
+    basemap.error = `${wanted} could not start. Check the key's restrictions, quota and network.`;
+    startedWith = JSON.stringify(request());
+    return;
+  }
   // The user may have changed the choice while the globe was still starting.
   if (g && JSON.stringify(request()) !== startedWith) void commit(choice());
 }

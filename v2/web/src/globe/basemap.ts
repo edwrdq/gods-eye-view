@@ -175,6 +175,8 @@ function createController(Cesium: CesiumModule, viewer: import('cesium').CesiumW
     const errors: string[] = [];
     if (googleKey) {
       try {
+        // No onlyUsingWithGoogleGeocoder: search uses Photon/Nominatim, so Cesium's
+        // console reminder about Google's geocoder terms is accurate and stays.
         return await Cesium.createGooglePhotorealistic3DTileset({ key: googleKey }, { asynchronouslyLoadImagery: true });
       } catch (e) {
         errors.push(String(e));
