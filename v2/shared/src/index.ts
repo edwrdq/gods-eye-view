@@ -100,7 +100,120 @@ export interface Observation {
   heading?: number;
   /** Metres per second, when known. */
   speed?: number;
-  props: Record<string, string | number | boolean | null>;
+  props: Record<string, PropValue>;
+}
+
+/** Values a feed may put in Observation.props. Keep snapshot props small. */
+export type PropValue = string | number | boolean | null;
+
+// ---------------------------------------------------------------- /api/feeds
+
+export type FeedState =
+  /** Last fetch succeeded within the feed's freshness window. */
+  | 'live'
+  /** Running, but the newest data is older than the freshness window. */
+  | 'stale'
+  /** Last attempt failed; see lastError. Older data may still be served. */
+  | 'error'
+  /** Feed not running (not enabled in server config). */
+  | 'off'
+  /** Feed needs a key that is not configured. */
+  | 'needs-key';
+
+export interface FeedStatus {
+  layer: string;
+  state: FeedState;
+  /** Upstream currently in use, e.g. 'OpenSky' or 'adsb.lol'. */
+  source: string | null;
+  /** Epoch ms of the last successful fetch / message. */
+  lastSuccess: number | null;
+  lastError: string | null;
+  /** Objects in the most recent snapshot. */
+  count: number;
+  /** Data older than this many ms counts as stale for this feed. */
+  freshnessMs: number;
+}
+
+/** GET /api/feeds */
+export interface FeedsResponse {
+  feeds: FeedStatus[];
+}
+
+// ---------------------------------------------------------------- /api/layers/:id/...
+
+/**
+ * GET /api/layers/:id/snapshot?bbox=w,s,e,n&at=<epoch ms>
+ * Latest observation per object inside bbox (whole world when omitted). With
+ * `at`, the latest observation per object at or before `at` within the layer's
+ * lookback window (historical view); without it, the live picture.
+ * 404 for an unknown layer, 409 with ApiError when the feed is off or needs a key.
+ */
+export interface LayerSnapshot {
+  layer: string;
+  /** The instant this snapshot describes (epoch ms). */
+  at: number;
+  /** True when `at` was requested (historical), false for live. */
+  historical: boolean;
+  feed: FeedStatus;
+  /** Snapshot props are a compact subset (label, type, ...); see the detail endpoint. */
+  objects: Observation[];
+  /** True when the server capped the result; zoom in for the rest. */
+  truncated: boolean;
+}
+
+/**
+ * GET /api/layers/:id/objects/:objectId?at=<epoch ms>
+ * Full detail for one object: its latest observation (at or before `at`) with
+ * all known props, plus enrichment where the feed supports it.
+ */
+export interface ObjectDetail {
+  layer: string;
+  objectId: string;
+  observation: Observation;
+  /** Human-readable display title, e.g. callsign or vessel name. */
+  title: string;
+  subtitle: string | null;
+  /** Ordered, labelled groups for the detail panel. */
+  sections: DetailSection[];
+  /** Upstream sources that contributed. */
+  sources: string[];
+}
+
+export interface DetailSection {
+  title: string;
+  rows: DetailRow[];
+}
+
+export interface DetailRow {
+  label: string;
+  value: PropValue;
+  /** Optional unit or secondary text, rendered muted. */
+  hint?: string;
+  /** Render the value in the mono font (ids, coordinates, codes). */
+  mono?: boolean;
+}
+
+/**
+ * GET /api/layers/:id/objects/:objectId/track?from=<ms>&to=<ms>
+ * Recorded positions, oldest first. Defaults: last 6 hours.
+ */
+export interface Track {
+  layer: string;
+  objectId: string;
+  /** [epoch ms, lon, lat, alt metres or null] */
+  points: Array<[t: number, lon: number, lat: number, alt: number | null]>;
+}
+
+/**
+ * GET /api/history/range
+ * Time span covered by recorded history, for the time slider.
+ */
+export interface HistoryRange {
+  /** Epoch ms of the oldest stored observation, or null when empty. */
+  from: number | null;
+  to: number | null;
+  /** How long history is kept, in ms. */
+  retentionMs: number;
 }
 
 export interface ApiError {
