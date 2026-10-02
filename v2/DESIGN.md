@@ -33,7 +33,7 @@ System stacks only; nothing to install.
 
 - Sans: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif` (`--font-sans`).
 - Mono: `ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace` (`--font-mono`).
-- Optional upgrade if the owner wants identical rendering across machines: `@fontsource-variable/inter` (sans) and `@fontsource-variable/jetbrains-mono` (mono), imported locally by the web app. Not required; tokens already point at system fonts, so adding them means prepending to the two stacks only.
+- Mono is bundled: `@fontsource-variable/jetbrains-mono` ("JetBrains Mono Variable"), imported by the web app and prepended to `--font-mono`. Sans stays the system stack.
 
 Scale is fixed rem, ratio about 1.125; UI is dense at 13 px.
 
@@ -113,7 +113,7 @@ Each chip is color text on a 10-14% tinted fill: all status text meets 5.4:1 or 
 Floating, 10 px radius, `--surface-panel` (94-95% opaque), 1 px border, `--shadow-2`. Header 48 px: title (15 px/600), muted meta, icon button to collapse. Body scrolls (`.scroll-y`), header and filter stay fixed. Left and right panels sit 12 px from the edges and below the top bar; they never overlap the status bar. Collapsed state: panel shrinks to a 44 px icon button at its corner. Under 760 px: layers become a full-width drawer opened by the Layers button; the detail panel becomes a bottom sheet (max 45% height, 14 px radius); only one is open at a time.
 
 ### Layer group and layer row
-- Group header (40 px): category icon in category color, name (13/600), "2 of 3 on" in secondary text, chevron; `aria-expanded`. Collapsible; collapsed by default when the group has nothing enabled and the panel is short.
+- Group header (40 px): category icon in category color, name (13/600), "2 of 3 on" in secondary text, chevron; `aria-expanded`. Collapsible; collapsed by default when the group has nothing enabled and the panel is short. The user's collapsed/expanded choice persists across sessions (localStorage `gev.v2.layerGroups.collapsed`).
 - Row: left 3 px category tick (35% opacity off, 100% on; a small marker, not a card border), name (13/500), switch top-right, one-to-two line description (12 px secondary), and a status line when relevant: chip + count + age ("11,482 aircraft . 2 s ago"). On rows get a faint accent tint. Off rows show only name and description unless there is a problem (error, needs key), which is always visible.
 - Planned rows: name and description in tertiary text, dashed "Planned" chip, switch disabled and labeled "(planned)" for assistive tech. No hover.
 - Row hover: `--hover-overlay`. Keyboard: the switch is the tab stop; the whole row is not.
@@ -157,9 +157,10 @@ Lucide (ISC license), inlined as SVG symbols; in Svelte use `lucide-svelte` or `
 
 Dark is the default on `:root`. Light applies through `@media (prefers-color-scheme: light)` on `:root:not([data-theme])`, or explicitly with `<html data-theme="light">`; `data-theme="dark"` forces dark. Components use only semantic tokens. The globe stage is not themed. The theme choice (system / light / dark) should be stored client-side and applied before first paint.
 
-## Open questions for the owner
+## Owner decisions (2026-10-02)
 
-1. Is the indigo accent acceptable, or do you prefer a different hue (it was chosen to stay out of the eight category hues)?
-2. Want the optional Inter / JetBrains Mono packages for consistent rendering, or stay on system fonts?
-3. Are the 8 category names final (is CCTV "ground", and radio/SDR "signals")? Map marker shapes assume yes.
-4. Should layer groups remember their collapsed state between sessions?
+1. Indigo accent: approved.
+2. Fonts: bundle JetBrains Mono for mono; system sans for UI.
+3. Categories: approved (CCTV under ground, radio/SDR under signals).
+4. Layer group collapsed state persists between sessions.
+5. UI work uses the impeccable skill (critique/audit/polish before shipping).
