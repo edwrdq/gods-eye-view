@@ -2,12 +2,16 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
 // Cesium resolves from the hoisted workspace node_modules, so locate it
 // through the package resolver rather than assuming ./node_modules.
 const require = createRequire(import.meta.url);
 const cesiumBuild = path.join(path.dirname(require.resolve('cesium/package.json')), 'Build', 'Cesium');
+
+// The API server reads PORT from v2/.env; follow it so the proxy matches.
+const apiPort = loadEnv('development', path.resolve(import.meta.dirname, '..'), '').PORT || '8787';
+const apiProxy = { '/api': { target: `http://127.0.0.1:${apiPort}`, changeOrigin: false } };
 
 export default defineConfig({
   plugins: [
@@ -23,12 +27,8 @@ export default defineConfig({
       })),
     }),
   ],
-  server: {
-    proxy: { '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false } },
-  },
-  preview: {
-    proxy: { '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false } },
-  },
+  server: { proxy: apiProxy },
+  preview: { proxy: apiProxy },
   build: {
     target: 'es2022',
     // The Cesium chunk is large by nature and loaded after the shell paints.

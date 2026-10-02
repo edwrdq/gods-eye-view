@@ -32,10 +32,22 @@ const app = createApp({
   feeds,
   observations: db.observations,
 });
-feeds.start();
-
 const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
   console.log(`gev server v${version ?? '0.0.0'} listening on http://${config.host}:${info.port} (db ${db.path})`);
+  // Start feeds only once listening, so a failed start records nothing.
+  feeds.start();
+});
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `Port ${config.port} on ${config.host} is already in use, probably by another gev server.\n` +
+        `Stop it (lsof -i :${config.port}, then kill the PID) or set PORT in v2/.env.`,
+    );
+  } else {
+    console.error(err);
+  }
+  db.close();
+  process.exit(1);
 });
 
 let closing = false;
