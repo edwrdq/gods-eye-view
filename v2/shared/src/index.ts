@@ -1,7 +1,10 @@
 // Contract between @gev/server and @gev/web. Both sides import these types;
 // change them here first, then update both implementations.
 
-/** WGS84 bounding box in degrees: [west, south, east, north]. */
+/**
+ * WGS84 bounding box in degrees: [west, south, east, north].
+ * west > east means the box crosses the antimeridian; clients must handle it.
+ */
 export type BBox = [west: number, south: number, east: number, north: number];
 
 export interface LonLat {
@@ -60,6 +63,8 @@ export interface LayerDescriptor {
 }
 
 // ---------------------------------------------------------------- /api/geocode?q=
+// 400 ApiError for an empty or over-long query; 502 ApiError when every
+// provider failed (show "search unavailable", not "no results").
 
 export interface GeocodeResult {
   label: string;
