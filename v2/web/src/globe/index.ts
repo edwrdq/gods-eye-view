@@ -6,6 +6,7 @@ import { readCredits } from './credits.ts';
 import type { CameraState, Globe, GlobeOptions } from './types.ts';
 
 export type { BaseMapKind, CameraState, Credit, FlyTarget, Globe, GlobeOptions } from './types.ts';
+export type { DataHooks, DataLayers, LayerRunState, LayerSpec, Selected, UpdateMetric } from './layers/manager.ts';
 
 const START_VIEW = { lon: -20, lat: 24 };
 const STAGE_COLOR = '#05080d'; // matches the mock's globe stage; imagery does not follow the UI theme
@@ -152,6 +153,11 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
   const base = await installBaseMap(Cesium, widget, options);
   for (const w of base.warnings) console.warn(`[globe] ${w}`);
 
+  // Development only: lets scripts drive the camera and inspect the scene.
+  if (import.meta.env.DEV || import.meta.env.VITE_FIXTURES) {
+    (window as unknown as { __gev?: unknown }).__gev = { Cesium, scene, camera };
+  }
+
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   const globe: Globe = {
@@ -186,6 +192,13 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
       cursorListeners.add(cb);
       return () => cursorListeners.delete(cb);
     },
+    // base map: delegated to the controller in basemap.ts
+    setBaseMap: (req) => base.controller.apply(req),
+    setBaseMapDate: (date) => base.controller.setDate(date),
+    async loadData(hooks, api) {
+      const { createDataLayers } = await import('./layers/manager.ts');
+      return createDataLayers(Cesium, widget, hooks, api);
+    },
     getCredits() {
       return readCredits(creditHost);
     },
@@ -203,6 +216,7 @@ export async function createGlobe(options: GlobeOptions): Promise<Globe> {
       cameraListeners.clear();
       cursorListeners.clear();
       creditListeners.clear();
+      base.controller.destroy();
       if (!widget.isDestroyed()) widget.destroy();
       creditHost.remove();
     },

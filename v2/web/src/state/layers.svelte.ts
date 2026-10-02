@@ -1,5 +1,6 @@
 import type { ClientConfig, LayerCategory, LayerDescriptor } from '@gev/shared';
-import { isToggleable } from '../lib/layers.ts';
+import { currentFlags } from '../lib/flags.ts';
+import { isRendered, isToggleable } from '../lib/layers.ts';
 import { readStored, writeStored } from '../lib/storage.ts';
 
 export type ConfigStatus = 'loading' | 'ready' | 'error';
@@ -20,9 +21,17 @@ export function toggleLayer(layer: LayerDescriptor) {
 export async function loadConfig(signal?: AbortSignal): Promise<ClientConfig | null> {
   layerStore.status = 'loading';
   try {
-    const res = await fetch('/api/config', { signal });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const config = (await res.json()) as ClientConfig;
+    let config: ClientConfig;
+    const flags = currentFlags();
+    if ((import.meta.env.DEV || import.meta.env.VITE_FIXTURES) && flags.fixtures) {
+      config = (await import('../api/fixtures.ts')).fixtureConfig();
+      // The bench starts with every drawable layer on so it can be measured without clicking.
+      if (flags.bench > 0) for (const l of config.layers) if (isRendered(l)) layerStore.enabled[l.id] = true;
+    } else {
+      const res = await fetch('/api/config', { signal });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      config = (await res.json()) as ClientConfig;
+    }
     layerStore.config = config;
     layerStore.layers = config.layers;
     layerStore.status = 'ready';

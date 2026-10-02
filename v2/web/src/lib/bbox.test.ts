@@ -65,3 +65,76 @@ test('altitudeToFitGlobe fits the tighter axis', () => {
   // Looser fill means the camera sits closer.
   assert.ok(altitudeToFitGlobe({ aspect: 1.6, fovY: 0.69, fill: 0.95 }) < wide);
 });
+
+import { bboxContains, bboxFromRectangle, bboxHasPoint, bboxParam } from './bbox.ts';
+
+const rad = (d: number) => (d * Math.PI) / 180;
+const rect = (w: number, s: number, e: number, n: number) => ({ west: rad(w), south: rad(s), east: rad(e), north: rad(n) });
+
+test('bboxFromRectangle pads a normal view', () => {
+  const b = bboxFromRectangle(rect(-10, 40, 10, 50), 0.25)!;
+  assert.ok(Math.abs(b[0] - -15) < 1e-9);
+  assert.ok(Math.abs(b[2] - 15) < 1e-9);
+  assert.ok(Math.abs(b[1] - 37.5) < 1e-9);
+  assert.ok(Math.abs(b[3] - 52.5) < 1e-9);
+});
+
+test('bboxFromRectangle keeps west > east across the antimeridian', () => {
+  const b = bboxFromRectangle(rect(170, -10, -170, 10), 0)!;
+  assert.ok(Math.abs(b[0] - 170) < 1e-9);
+  assert.ok(Math.abs(b[2] - -170) < 1e-9);
+  assert.ok(b[0] > b[2]);
+  const padded = bboxFromRectangle(rect(170, -10, -170, 10), 0.25)!;
+  assert.ok(Math.abs(padded[0] - 165) < 1e-9);
+  assert.ok(Math.abs(padded[2] - -165) < 1e-9);
+});
+
+test('padding wraps over the antimeridian instead of leaving [-180, 180]', () => {
+  const b = bboxFromRectangle(rect(-179, 0, -160, 10), 0.25)!;
+  assert.ok(b[0] > 170 && b[0] <= 180);
+  assert.ok(Math.abs(b[2] - -155.25) < 1e-9);
+});
+
+test('bboxFromRectangle returns null for world-sized or missing views', () => {
+  assert.equal(bboxFromRectangle(undefined), null);
+  assert.equal(bboxFromRectangle(rect(-180, -90, 180, 90)), null);
+  assert.equal(bboxFromRectangle(rect(-130, -60, 130, 60)), null);
+  assert.equal(bboxFromRectangle({ west: Number.NaN, south: 0, east: 0, north: 0 }), null);
+});
+
+test('bboxFromRectangle clamps latitude', () => {
+  const b = bboxFromRectangle(rect(0, 80, 20, 90), 0.5)!;
+  assert.equal(b[3], 90);
+});
+
+test('bboxParam rounds to 4 decimals', () => {
+  assert.equal(bboxParam([-10.123456, 1, 10.5, 2.00001]), '-10.1235,1,10.5,2');
+});
+
+test('bboxContains handles null, nesting and the antimeridian', () => {
+  assert.equal(bboxContains(null, [0, 0, 1, 1]), true);
+  assert.equal(bboxContains(null, null), true);
+  assert.equal(bboxContains([0, 0, 1, 1], null), false);
+  assert.equal(bboxContains([-20, -20, 20, 20], [-10, -10, 10, 10]), true);
+  assert.equal(bboxContains([-20, -20, 20, 20], [-10, -10, 30, 10]), false);
+  assert.equal(bboxContains([-20, -20, 20, 20], [-10, -30, 10, 10]), false);
+  assert.equal(bboxContains([160, -20, -160, 20], [170, 0, -170, 10]), true);
+  assert.equal(bboxContains([160, -20, -160, 20], [150, 0, -170, 10]), false);
+  assert.equal(bboxContains([160, -20, -160, 20], [-175, 0, -165, 10]), true);
+});
+
+test('bboxHasPoint handles the antimeridian', () => {
+  assert.equal(bboxHasPoint([170, 0, -170, 10], 175, 5), true);
+  assert.equal(bboxHasPoint([170, 0, -170, 10], -175, 5), true);
+  assert.equal(bboxHasPoint([170, 0, -170, 10], 0, 5), false);
+  assert.equal(bboxHasPoint([170, 0, -170, 10], 175, 15), false);
+  assert.equal(bboxHasPoint(null, 1, 1), true);
+});
+
+import { bboxArea } from './bbox.ts';
+
+test('bboxArea compares views', () => {
+  assert.equal(bboxArea(null), 64800);
+  assert.equal(bboxArea([0, 0, 10, 10]), 100);
+  assert.equal(bboxArea([170, 0, -170, 10]), 200);
+});

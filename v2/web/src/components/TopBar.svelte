@@ -5,6 +5,7 @@
   import Moon from '@lucide/svelte/icons/moon';
   import Monitor from '@lucide/svelte/icons/monitor';
   import IconButton from './IconButton.svelte';
+  import BaseMapPicker from './BaseMapPicker.svelte';
   import SearchBox from './SearchBox.svelte';
   import { cycleTheme, theme, type ThemeMode } from '../state/theme.svelte.ts';
 
@@ -32,6 +33,7 @@
   <SearchBox />
 
   <div class="island tools">
+    <BaseMapPicker />
     <IconButton {label} title={label} onclick={cycleTheme}>
       {#if theme.mode === 'light'}<Sun size={18} strokeWidth={1.75} />{:else if theme.mode === 'dark'}<Moon size={18} strokeWidth={1.75} />{:else}<Monitor size={18} strokeWidth={1.75} />{/if}
     </IconButton>

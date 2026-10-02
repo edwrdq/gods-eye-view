@@ -292,9 +292,9 @@
     background: var(--hover-overlay);
   }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 1380px) {
     .panel {
-      width: var(--panel-left-w);
+      bottom: calc(var(--statusbar-h) + var(--shell-gutter) * 2 + var(--dock-h, 0px));
     }
   }
   @media (max-width: 760px) {

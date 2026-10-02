@@ -1,12 +1,16 @@
 <script lang="ts">
   import type { LayerDescriptor } from '@gev/shared';
   import KeyRound from '@lucide/svelte/icons/key-round';
+  import LayerStatus from './LayerStatus.svelte';
   import StatusChip from './StatusChip.svelte';
   import { isToggleable, switchLabel } from '../lib/layers.ts';
-  import { layerStore, toggleLayer } from '../state/layers.svelte.ts';
+  import { setLayerEnabled } from '../state/data.svelte.ts';
+  import { feedStore } from '../state/feeds.svelte.ts';
+  import { layerStore } from '../state/layers.svelte.ts';
 
   let { layer }: { layer: LayerDescriptor } = $props();
   const on = $derived(layerStore.enabled[layer.id] === true && isToggleable(layer));
+  const sourceOff = $derived(feedStore.byLayer[layer.id]?.state === 'off');
   const planned = $derived(layer.status === 'planned');
   const uid = $props.id();
 </script>
@@ -20,8 +24,8 @@
     aria-checked={on}
     aria-label={switchLabel(layer)}
     aria-describedby="{uid}-desc"
-    disabled={!isToggleable(layer)}
-    onclick={() => toggleLayer(layer)}
+    disabled={!isToggleable(layer) || sourceOff}
+    onclick={() => setLayerEnabled(layer, !on)}
   ></button>
   <div class="layer-desc" id="{uid}-desc">{layer.description}</div>
   {#if planned}
@@ -31,8 +35,8 @@
       <StatusChip tone="key"><KeyRound size={12} strokeWidth={2} aria-hidden="true" />Needs API key</StatusChip>
       {#if layer.requiredKey}<span>Set <span class="mono">{layer.requiredKey}</span> in .env</span>{/if}
     </div>
-  {:else if on}
-    <div class="layer-status"><span>On. Drawing this layer arrives in a later phase.</span></div>
+  {:else}
+    <LayerStatus {layer} />
   {/if}
 </div>
 

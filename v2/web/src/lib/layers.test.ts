@@ -38,3 +38,18 @@ test('toggleable and labels', () => {
   assert.equal(switchLabel(layers[2]!), 'Airports (planned)');
   assert.equal(switchLabel(layers[0]!), 'Ships (needs API key)');
 });
+
+import { isRendered, layerNoun } from './layers.ts';
+
+test('only available, known point layers are rendered', () => {
+  assert.equal(isRendered(mk('flights', 'air', 'available')), true);
+  assert.equal(isRendered(mk('flights', 'air', 'needs-key')), false);
+  assert.equal(isRendered(mk('satellites', 'space', 'available')), false);
+});
+
+test('layerNoun reads naturally', () => {
+  assert.equal(layerNoun('flights', 1), 'aircraft');
+  assert.equal(layerNoun('vessels', 1), 'ship');
+  assert.equal(layerNoun('vessels', 5), 'ships');
+  assert.equal(layerNoun('x', 5), 'objects');
+});

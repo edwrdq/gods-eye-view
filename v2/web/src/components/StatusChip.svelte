@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  let { tone, children }: { tone: 'live' | 'stale' | 'error' | 'key' | 'planned'; children: Snippet } = $props();
+  let { tone, children }: { tone: 'live' | 'stale' | 'error' | 'key' | 'planned' | 'loading' | 'history'; children: Snippet } = $props();
 </script>
 
 <span class="chip {tone}">{@render children()}</span>
@@ -23,5 +23,7 @@
   .stale { --c: var(--status-stale); --bg: var(--status-stale-bg); }
   .error { --c: var(--status-error); --bg: var(--status-error-bg); }
   .key { --c: var(--status-key); --bg: var(--status-key-bg); }
+  .loading { --c: var(--status-loading); --bg: var(--hover-overlay); }
+  .history { --c: var(--accent); --bg: var(--accent-subtle); }
   .planned { --c: var(--status-planned); --bg: transparent; border: 1px dashed var(--border-strong); padding-left: var(--space-3); }
 </style>

@@ -92,3 +92,81 @@ export function altitudeToFitGlobe({ aspect, fovY, fill = 0.82 }: { aspect: numb
   const half = (Math.min(fovX, fovY) / 2) * fill;
   return WGS84_RADIUS_M / Math.sin(half) - WGS84_RADIUS_M;
 }
+
+// ---------------------------------------------------------------- view bounding boxes
+
+const RAD2DEG = 180 / Math.PI;
+
+/** What camera.computeViewRectangle() returns: radians, west > east when crossing the antimeridian. */
+export interface RectangleRad {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+/** View spans wider than this many degrees of longitude are treated as "the whole world". */
+export const WORLD_SPAN_DEG = 240;
+
+/**
+ * Convert the camera's visible rectangle into an API bbox, padded so small pans
+ * stay inside it. Returns null for "whole world": no rectangle (the globe fills
+ * the view), or a span so wide that filtering buys nothing. West > east in the
+ * result means it crosses the antimeridian.
+ */
+export function bboxFromRectangle(rect: RectangleRad | undefined | null, padFraction = 0.25): BBox | null {
+  if (!rect) return null;
+  const w = rect.west * RAD2DEG;
+  const e = rect.east * RAD2DEG;
+  const s = rect.south * RAD2DEG;
+  const n = rect.north * RAD2DEG;
+  if (![w, e, s, n].every(Number.isFinite)) return null;
+  let span = e - w;
+  if (span < 0) span += 360;
+  if (span >= WORLD_SPAN_DEG) return null;
+  const padLon = span * padFraction;
+  const padLat = (n - s) * padFraction;
+  if (span + 2 * padLon >= 360) return null;
+  return [wrapLon(w - padLon), clampLat(s - padLat), wrapLon(e + padLon), clampLat(n + padLat)];
+}
+
+/** `bbox` query value for the API. */
+export function bboxParam(box: BBox): string {
+  return box.map((v) => (Math.round(v * 1e4) / 1e4).toString()).join(',');
+}
+
+function lonRange(box: BBox): [number, number] {
+  const w = box[0];
+  let e = box[2];
+  if (e < w) e += 360;
+  return [w, e];
+}
+
+/** True when `inner` lies completely inside `outer`. `null` is the whole world. */
+export function bboxContains(outer: BBox | null, inner: BBox | null): boolean {
+  if (outer === null) return true;
+  if (inner === null) return false;
+  if (inner[1] < outer[1] || inner[3] > outer[3]) return false;
+  const [ow, oe] = lonRange(outer);
+  const [iw, ie] = lonRange(inner);
+  for (const shift of [-360, 0, 360]) {
+    if (iw + shift >= ow && ie + shift <= oe) return true;
+  }
+  return false;
+}
+
+/** Whether a point is inside a bbox (handles the antimeridian). `null` is the whole world. */
+export function bboxHasPoint(box: BBox | null, lon: number, lat: number): boolean {
+  if (box === null) return true;
+  if (lat < box[1] || lat > box[3]) return false;
+  const [w, e] = lonRange(box);
+  const l = wrapLon(lon);
+  return (l >= w && l <= e) || (l + 360 >= w && l + 360 <= e);
+}
+
+/** Area in square degrees (the whole world for null); only used to compare views. */
+export function bboxArea(box: BBox | null): number {
+  if (box === null) return 360 * 180;
+  const [w, e] = lonRange(box);
+  return (e - w) * Math.max(0, box[3] - box[1]);
+}
