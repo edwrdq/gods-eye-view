@@ -1,7 +1,17 @@
 # God's Eye View v2
 
-Ground-up rewrite of the app at the repository root. See [PLAN.md](PLAN.md)
-for scope and phases, [DESIGN.md](DESIGN.md) for the design system.
+A ground-up rewrite of [God's Eye View](https://github.com/bilawalsidhu/gods-eye-view)
+by Bilawal Sidhu (MIT), turning it into a calm, fast, self-hosted OSINT research
+tool.
+
+**Mostly AI-written.** The v2 code, design system and docs are written largely
+by AI coding agents (Claude Code), directed and reviewed by the fork owner. The
+original app at the repository root is the reference for feed behaviour and
+edge cases, and its credit belongs to the original project.
+
+**Status:** early. Phase 1 (app shell, globe, search, server and history store)
+is done; data layers are not drawn yet. See [PLAN.md](PLAN.md) for scope and
+phases, [DESIGN.md](DESIGN.md) for the design system.
 
 ## Run
 

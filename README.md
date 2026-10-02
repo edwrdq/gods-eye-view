@@ -1,3 +1,13 @@
+> [!IMPORTANT]
+> **This is a fork, and v2 is a mostly AI-written rewrite of the original project.**
+>
+> - The original God's Eye View is by [Bilawal Sidhu](https://github.com/bilawalsidhu/gods-eye-view) and is MIT licensed. All credit for the original app, its ideas and its data integrations goes to that project.
+> - This fork is rebuilding the app from the ground up in [`v2/`](v2/) as a calmer, faster research tool: no spy-console styling, recorded history, and research features. The rewrite is being written mostly by AI coding agents (Claude Code) under the fork owner's direction and review.
+> - The original app is kept unchanged at the repository root as the reference until v2 covers the same ground. Everything below this notice is the original project's README and describes that app, not v2.
+> - Status, scope and plan: [`v2/README.md`](v2/README.md) and [`v2/PLAN.md`](v2/PLAN.md).
+>
+> This fork is not affiliated with or endorsed by the original author. Please report v2 issues to this fork, not upstream.
+
 <div align="center">
 
 # 🌐 God's Eye View
